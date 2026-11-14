@@ -1,5 +1,5 @@
 local UI =
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau?v=final"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/4bb276f8bdd1a1e568f2cb9619b018e885485acd/Source.luau"))()
 
 local Window = UI:CreateWindow({
 	Title = "UNIVERSAL",
