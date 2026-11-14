@@ -1,4 +1,93 @@
 local Library = {}
+Library.Icons = {
+	"activity",
+	"airplay",
+	"archive",
+	"arrow-down",
+	"arrow-left",
+	"arrow-right",
+	"arrow-up",
+	"bell",
+	"bookmark",
+	"box",
+	"briefcase",
+	"calendar",
+	"camera",
+	"car",
+	"chart-column",
+	"check",
+	"chevron-down",
+	"chevron-left",
+	"chevron-right",
+	"chevron-up",
+	"clipboard",
+	"clock",
+	"cloud",
+	"code",
+	"compass",
+	"copy",
+	"credit-card",
+	"download",
+	"ellipsis",
+	"eye",
+	"eye-off",
+	"file",
+	"file-code",
+	"flag",
+	"folder",
+	"gamepad-2",
+	"gauge",
+	"globe",
+	"heart",
+	"house",
+	"image",
+	"info",
+	"key",
+	"keyboard",
+	"layers",
+	"layout-dashboard",
+	"link",
+	"list",
+	"lock",
+	"log-in",
+	"log-out",
+	"mail",
+	"map",
+	"map-pin",
+	"menu",
+	"message-circle",
+	"monitor",
+	"moon",
+	"mouse-pointer",
+	"palette",
+	"pause",
+	"play",
+	"plus",
+	"power",
+	"refresh-cw",
+	"rocket",
+	"save",
+	"search",
+	"settings",
+	"shield",
+	"shopping-cart",
+	"sliders-horizontal",
+	"smartphone",
+	"sparkles",
+	"star",
+	"sun",
+	"terminal",
+	"trophy",
+	"upload",
+	"user",
+	"users",
+	"volume-2",
+	"wallet",
+	"wifi",
+	"wrench",
+	"x",
+	"zap",
+}
 
 function Library:CreateWindow(options)
 	options = options or {}
@@ -80,6 +169,9 @@ function Library:CreateWindow(options)
 			TextColor3 = palette.text,
 			AutoButtonColor = false,
 		}, parent)
+		if parent.Name == "Options" or parent.Name == "Tabs" or parent.Name == "Navigation" then
+			b:SetAttribute("HoverStyle", "Highlight")
+		end
 		if styleButton then
 			styleButton(b)
 		end
@@ -111,6 +203,25 @@ function Library:CreateWindow(options)
 			writefile(path, game:HttpGet(assetUrl .. name .. ".png?v=3"))
 		end
 		icons[name] = { Image = getcustomasset(path) }
+	end
+
+	local function iconImage(name)
+		local aliases = { home = "house", main = "layers" }
+		name = aliases[name] or name or "layers"
+		if name:find("rbxasset", 1, true) then
+			return name
+		end
+		if not table.find(Library.Icons, name) then
+			name = "layers"
+		end
+		local path = (options.Folder or "Universal_Ui") .. "/assets/icons/" .. name .. ".png"
+		local ok, result = pcall(function()
+			if not isfile(path) then
+				writefile(path, game:HttpGet(assetUrl .. name .. ".png?v=final"))
+			end
+			return getcustomasset(path)
+		end)
+		return ok and result or icons.main.Image
 	end
 
 	local function logoImage(value)
@@ -240,6 +351,7 @@ function Library:CreateWindow(options)
 	}, popup)
 	round(popupSearch, 4)
 	local popupList = make("ScrollingFrame", {
+		Name = "Options",
 		ClipsDescendants = true,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
@@ -253,6 +365,31 @@ function Library:CreateWindow(options)
 		ZIndex = 51,
 	}, popup)
 	make("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder }, popupList)
+	uiRuntimeConnect(popupList:GetPropertyChangedSignal("CanvasPosition"), function()
+		local mouse = Input:GetMouseLocation()
+		local bounds = popupList.AbsolutePosition
+		local extent = popupList.AbsoluteSize
+		local inside = popup.Visible
+			and mouse.X >= bounds.X
+			and mouse.X <= bounds.X + extent.X
+			and mouse.Y >= bounds.Y
+			and mouse.Y <= bounds.Y + extent.Y
+		for _, entry in ipairs(popupList:GetDescendants()) do
+			if entry:IsA("TextButton") then
+				local fill = entry:FindFirstChild("HoverFill")
+				if fill then
+					local pos, size = entry.AbsolutePosition, entry.AbsoluteSize
+					local over = inside
+						and mouse.X >= pos.X
+						and mouse.X <= pos.X + size.X
+						and mouse.Y >= pos.Y
+						and mouse.Y <= pos.Y + size.Y
+					fill.BackgroundTransparency = over and 0.92 or 1
+				end
+			end
+		end
+	end)
+
 	local activeDropdown
 	local function closeDropdown()
 		popup.Visible = false
@@ -738,10 +875,16 @@ function Library:CreateWindow(options)
 			return register(tab.Group.name .. "/" .. tab.Title .. "/" .. o.Title, opts.Title, control, "toggle")
 		end
 		function section:Button(opts)
-			local f = row(32)
+			local f = row(opts.Primary and 38 or 32)
 			local b = button(f, opts.Title, UDim2.fromScale(1, 1))
-			b.TextXAlignment = Enum.TextXAlignment.Left
-			text(f, "›", UDim2.fromOffset(16, 28), UDim2.new(1, -16, 0, 1), 18, palette.dim)
+			b.TextXAlignment = opts.Primary and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left
+			if opts.Primary then
+				b.BackgroundColor3 = palette.accent
+				b.BackgroundTransparency = 0.12
+				round(b, 6)
+			end
+			local arrow = text(f, "›", UDim2.fromOffset(16, 28), UDim2.new(1, -16, 0, 1), 18, palette.dim)
+			arrow.Visible = not opts.Primary
 			uiRuntimeConnect(b.Activated, opts.Callback)
 			return { Instance = f }
 		end
@@ -863,6 +1006,7 @@ function Library:CreateWindow(options)
 			b.BackgroundColor3 = Color3.fromRGB(23, 23, 25)
 			b.BackgroundTransparency = 0
 			round(b, 4)
+			b:SetAttribute("HoverStyle", "Highlight")
 			local caption = text(b, "", UDim2.new(1, -36, 1, 0), UDim2.fromOffset(8, 0), 13)
 			local arrow = make("Frame", {
 				Name = "Arrow",
@@ -941,6 +1085,7 @@ function Library:CreateWindow(options)
 				for i, name in ipairs(options) do
 					if tostring(name):lower():find(query, 1, true) then
 						local entry = button(popupList, tostring(name), UDim2.new(1, -4, 0, 30))
+						entry:SetAttribute("HoverStyle", "Highlight")
 						make("UIPadding", { PaddingLeft = UDim.new(0, 10) }, entry)
 						round(entry, 5)
 						local selected = opts.Multi and table.find(value, name) or not opts.Multi and value == name
@@ -1064,7 +1209,36 @@ function Library:CreateWindow(options)
 				palette.dim
 			)
 		end
-		function section:UserInfo() end
+		function section:UserInfo(opts)
+			opts = opts or {}
+			local frame = row(158)
+			local photo = make("ImageLabel", {
+				Name = "Avatar",
+				BackgroundColor3 = palette.line,
+				BorderSizePixel = 0,
+				Size = UDim2.fromOffset(64, 64),
+				Position = UDim2.fromOffset(0, 8),
+				Image = "rbxthumb://type=AvatarHeadShot&id=" .. player.UserId .. "&w=150&h=150",
+				ScaleType = Enum.ScaleType.Fit,
+			}, frame)
+			round(photo, 14)
+			text(frame, player.DisplayName, UDim2.new(1, -80, 0, 26), UDim2.fromOffset(80, 16), 17)
+			text(frame, "@" .. player.Name, UDim2.new(1, -80, 0, 20), UDim2.fromOffset(80, 43), 12, palette.dim)
+			make("Frame", {
+				BackgroundColor3 = palette.line,
+				BorderSizePixel = 0,
+				Size = UDim2.new(1, 0, 0, 1),
+				Position = UDim2.fromOffset(0, 90),
+			}, frame)
+			text(frame, "Map", UDim2.new(1, 0, 0, 18), UDim2.fromOffset(0, 104), 11, palette.dim)
+			local map = text(frame, opts.Map or game.Name, UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 124), 13)
+			return {
+				Instance = frame,
+				SetMap = function(value)
+					map.Text = tostring(value)
+				end,
+			}
+		end
 		function section:StatGrid(entries)
 			local labels = {}
 			for _, entry in ipairs(entries) do
@@ -1270,6 +1444,7 @@ function Library:CreateWindow(options)
 					UDim2.new(1 / math.max(1, #items), -4, 1, -6),
 					UDim2.new((index - 1) / math.max(1, #items), 2, 0, 3)
 				)
+				b:SetAttribute("HoverStyle", "Highlight")
 				b.TextSize = 12
 				round(b, 4)
 				buttons[name] = { Button = b }
@@ -1463,6 +1638,7 @@ function Library:CreateWindow(options)
 				b.BackgroundTransparency = 0
 				b.BackgroundColor3 = palette.line
 				round(b, 4)
+				b:SetAttribute("HoverStyle", "Highlight")
 				uiRuntimeConnect(b.Activated, entry.Callback)
 			end
 			return { Instance = frame }
@@ -1501,6 +1677,7 @@ function Library:CreateWindow(options)
 			page.Columns[side] = column
 		end
 		page.TabButton = button(tabBar, opts.Title, UDim2.fromOffset(150, 64))
+		page.TabButton:SetAttribute("HoverStyle", "Highlight")
 		page.TabButton.Visible = false
 		round(page.TabButton, 7)
 		page.Underline = make("Frame", {
@@ -1541,7 +1718,7 @@ function Library:CreateWindow(options)
 		b.LayoutOrder = #groups + 1
 		b.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
 		round(b, 6)
-		local icon = icons[opts.Icon] or icons.main
+		local icon = { Image = iconImage(opts.Icon) }
 		local image = make("ImageLabel", {
 			BackgroundTransparency = 1,
 			Image = icon.Image,
@@ -1551,6 +1728,7 @@ function Library:CreateWindow(options)
 			Position = UDim2.fromOffset(10, 10),
 			ImageColor3 = palette.text,
 		}, b)
+		b:SetAttribute("HoverStyle", "Highlight")
 		group.Button = b
 		group.Image = image
 		group.Outline =
@@ -1768,7 +1946,7 @@ function Library:CreateWindow(options)
 		end
 		b:SetAttribute("HoverReady", true)
 		local effect
-		if b:IsA("TextButton") then
+		if b:IsA("TextButton") and b:GetAttribute("HoverStyle") ~= "Highlight" then
 			local host = make("Frame", {
 				Name = "HoverHost",
 				BackgroundTransparency = 1,
@@ -1827,30 +2005,57 @@ function Library:CreateWindow(options)
 			b.AnchorPoint = Vector2.new(0.5, 0.5)
 			effect = make("UIScale", { Scale = 1 }, b)
 		end
-		local hoverStroke = make("UIStroke", {
-			Name = "HoverOutline",
-			Color = Color3.fromRGB(126, 119, 143),
-			Thickness = 1,
-			Transparency = 1,
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		local hoverFill = make("Frame", {
+			Name = "HoverFill",
+			BackgroundColor3 = Color3.fromRGB(190, 181, 207),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = b.ZIndex + 1,
+			Active = false,
 		}, b)
+		local hoverCorner = make("UICorner", { CornerRadius = UDim.new(0, 6) }, hoverFill)
 		local hovered = false
 		local function animate(value)
 			if effect and b.Parent then
+				if b:GetAttribute("HoverStyle") == "Highlight" then
+					value = 1
+				end
 				TweenService:Create(effect, TweenInfo.new(0.14, Enum.EasingStyle.Quad), { Scale = value }):Play()
 			end
 		end
 		uiRuntimeConnect(b.MouseEnter, function()
 			hovered = true
-			TweenService:Create(hoverStroke, TweenInfo.new(0.14), { Transparency = 0.65 }):Play()
-			animate(1.04)
+			hoverFill.ZIndex = b.ZIndex + 1
+			local padding = b:FindFirstChildOfClass("UIPadding")
+			local left = padding and padding.PaddingLeft or UDim.new(0, 0)
+			local right = padding and padding.PaddingRight or UDim.new(0, 0)
+			local top = padding and padding.PaddingTop or UDim.new(0, 0)
+			local bottom = padding and padding.PaddingBottom or UDim.new(0, 0)
+			hoverFill.Position = UDim2.new(-left.Scale, -left.Offset, -top.Scale, -top.Offset)
+			hoverFill.Size = UDim2.new(
+				1 + left.Scale + right.Scale,
+				left.Offset + right.Offset,
+				1 + top.Scale + bottom.Scale,
+				top.Offset + bottom.Offset
+			)
+			local corner = b:FindFirstChildOfClass("UICorner")
+			hoverCorner.CornerRadius = corner and corner.CornerRadius or UDim.new(0, 6)
+			TweenService:Create(hoverFill, TweenInfo.new(0.14), { BackgroundTransparency = 0.92 }):Play()
+			animate(1.02)
 		end)
 		uiRuntimeConnect(b.MouseLeave, function()
 			hovered = false
-			TweenService:Create(hoverStroke, TweenInfo.new(0.14), { Transparency = 1 }):Play()
+			TweenService:Create(hoverFill, TweenInfo.new(0.14), { BackgroundTransparency = 1 }):Play()
 			animate(1)
 		end)
 		uiRuntimeConnect(b.Activated, function()
+			if b:GetAttribute("HoverStyle") == "Highlight" then
+				if appearance.Sound then
+					clickSound:Play()
+				end
+				return
+			end
 			if appearance.Motion then
 				b.ClipsDescendants = true
 				local ripple = make("Frame", {
@@ -1884,7 +2089,7 @@ function Library:CreateWindow(options)
 			animate(0.965)
 			task.delay(0.09, function()
 				if Runtime.Alive then
-					animate(hovered and 1.04 or 1)
+					animate(hovered and 1.02 or 1)
 				end
 			end)
 		end)
@@ -2210,6 +2415,10 @@ function Library:CreateWindow(options)
 		Window:SetAccent(Color3.fromHSV((os.clock() * 0.12) % 1, 0.75, 1))
 		appearance.Accent = saved
 	end)
+
+	function Window:Icon(name)
+		return iconImage(name)
+	end
 
 	function Window:GetLastError()
 		return Runtime.LastUIError

@@ -1,9 +1,10 @@
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau?v=9"))()
+local UI =
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau?v=final"))()
 
 local Window = UI:CreateWindow({
 	Title = "UNIVERSAL",
 	Author = "TaTarzx",
-	Version = "v3",
+	Version = "1.0",
 	Logo = "rbxassetid://120549670549494",
 	FloatLogo = "rbxassetid://99287950951825",
 	Folder = "Universal_Ui",
@@ -12,23 +13,74 @@ local Window = UI:CreateWindow({
 })
 
 local Home = Window:Category({ Title = "Home", Icon = "home" })
-local Overview = Home:Tab({ Title = "Overview", Default = true })
+local Dashboard = Home:Tab({ Title = "Dashboard", Default = true })
 local Main = Window:Category({ Title = "Main", Icon = "main" })
 local General = Main:Tab({ Title = "General" })
 
-local Intro = Overview:Section({ Title = "Welcome", Side = "Left" })
-Intro:Banner({ Title = "UNIVERSAL", SubTitle = "UI EXAMPLE" })
-Intro:Paragraph({ Title = "Start here", Content = "Category > Tab > Section. Each column scrolls on its own." })
-Intro:Text({ Text = "A clean base for your next UI." })
-Intro:Button({
-	Title = "Show bubble",
+local Intro = Dashboard:Section({ Title = "Welcome", Side = "Left" })
+local Profile = Intro:UserInfo()
+task.spawn(function()
+	local ok, info = pcall(function()
+		return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
+	end)
+	if ok and info and not Window.Unloaded then
+		Profile.SetMap(info.Name)
+	end
+end)
+local Community = Dashboard:Section({ Title = "Logo", Side = "Right" })
+Community:Image({ Image = "rbxassetid://120549670549494", Height = 178 })
+Community:Paragraph({ Title = "Join Discord Server", Content = 'D0TFrosty "Area' })
+local joining = false
+Community:Button({
+	Title = "Join Discord",
+	Primary = true,
 	Callback = function()
-		Window:Bubble({ Title = "Hello", Content = "Your UI is ready.", Duration = 4 })
+		if joining then
+			return
+		end
+		joining = true
+		task.spawn(function()
+			local code = "tgv4ywuGSg"
+			local link = "https://discord.gg/" .. code
+			local copy = setclipboard or toclipboard
+			local copied = copy and pcall(copy, link)
+			local send = request or http_request or (syn and syn.request)
+			local opened = false
+			if send then
+				local http = game:GetService("HttpService")
+				for port = 6463, 6472 do
+					if Window.Unloaded then
+						break
+					end
+					local ok, response = pcall(send, {
+						Url = "http://127.0.0.1:" .. port .. "/rpc?v=1",
+						Method = "POST",
+						Headers = { ["Content-Type"] = "application/json", ["Origin"] = "https://discord.com" },
+						Body = http:JSONEncode({
+							cmd = "INVITE_BROWSER",
+							nonce = http:GenerateGUID(false),
+							args = {
+								code = code,
+							},
+						}),
+						Timeout = 1,
+					})
+					if ok and type(response) == "table" and response.StatusCode == 200 then
+						opened = true
+						break
+					end
+				end
+			end
+			if not Window.Unloaded then
+				local message = opened
+						and (copied and "เปิดดิสคอร์ด - ก๊อปปี้ลิ้งดิสแล้ว" or "เปิดดิสคอร์ดแล้ว")
+					or (copied and "ก๊อปปี้ลิ้งดิสแล้ว" or link)
+				Window:Notify({ Title = "Discord", Content = message, Duration = 5 })
+			end
+			joining = false
+		end)
 	end,
 })
-local Preview = Overview:Section({ Title = "Preview", Side = "Right" })
-Preview:Image({ Image = "rbxassetid://120549670549494", Height = 150, Caption = "Transparent image" })
-Preview:StatGrid({ { Label = "Version", Value = "3.0" }, { Label = "Status", Value = "Ready" } })
 local Inputs = General:Section({ Title = "Inputs", Side = "Left" })
 Inputs:Toggle({
 	Title = "Enabled",
@@ -98,9 +150,21 @@ Copy:Button({
 })
 getgenv().__UniversalExample = { Progress = Progress, Text = Caption }
 
+local Icons = Display:Section({ Title = "Icons", Side = "Right" })
+local IconPreview
+Icons:Dropdown({
+	Title = "Icon",
+	Options = UI.Icons,
+	Default = "car",
+	Callback = function(name)
+		if IconPreview then
+			IconPreview.Set(Window:Icon(name))
+		end
+	end,
+})
+IconPreview = Icons:Image({ Image = Window:Icon("car"), Height = 64 })
+
 local Setting = Window:Category({ Title = "Setting", Icon = "settings" })
 Window:AddSettings(Setting)
 
-
 return Window
-
