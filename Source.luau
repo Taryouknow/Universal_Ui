@@ -167,8 +167,9 @@ function Library:CreateWindow(options)
 		Position = UDim2.new(1, -165, 0, 18),
 		Image = options.ProfileImage or ("rbxthumb://type=AvatarHeadShot&id=" .. player.UserId .. "&w=150&h=150"),
 	}, header)
-	text(header, player.DisplayName, UDim2.fromOffset(108, 18), UDim2.new(1, -117, 0, 22), 12)
-	text(header, options.Author or "Universal", UDim2.fromOffset(108, 14), UDim2.new(1, -117, 0, 40), 9, palette.dim)
+	local displayInfo = text(header, player.DisplayName, UDim2.fromOffset(108, 18), UDim2.new(1, -117, 0, 22), 12)
+	local usernameInfo =
+		text(header, "@" .. player.Name, UDim2.fromOffset(108, 14), UDim2.new(1, -117, 0, 40), 9, palette.dim)
 	local shadow = make("Frame", {
 		Name = "Shadow",
 		BackgroundColor3 = Color3.new(),
@@ -240,6 +241,7 @@ function Library:CreateWindow(options)
 	}, popup)
 	round(popupSearch, 4)
 	local popupList = make("ScrollingFrame", {
+		ClipsDescendants = true,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, -16, 1, -48),
@@ -254,6 +256,9 @@ function Library:CreateWindow(options)
 	local activeDropdown
 	local function closeDropdown()
 		popup.Visible = false
+		if activeDropdown and activeDropdown.Arrow then
+			activeDropdown.Arrow.Rotation = 0
+		end
 		activeDropdown = nil
 	end
 	local alignNavigation
@@ -262,6 +267,10 @@ function Library:CreateWindow(options)
 	local appearance = {
 		Theme = "Dark",
 		Accent = "8D47FF",
+		RGB = false,
+		HideInfo = false,
+		Background = "141414",
+		Panel = "0E0E0E",
 		Scale = 100,
 		Blur = 0,
 		Transparency = 0,
@@ -320,6 +329,9 @@ function Library:CreateWindow(options)
 		scale.Scale = value
 	end
 	function Window:ApplyAppearance()
+		avatar.Visible = not appearance.HideInfo
+		displayInfo.Visible = not appearance.HideInfo
+		usernameInfo.Visible = not appearance.HideInfo
 		local viewport = workspace.CurrentCamera.ViewportSize
 		scale.Scale = math.max(
 			0.3,
@@ -503,6 +515,14 @@ function Library:CreateWindow(options)
 			local p = input.Position
 			local a = popup.AbsolutePosition
 			local b = a + popup.AbsoluteSize
+			local trigger = activeDropdown and activeDropdown.Trigger
+			if trigger then
+				local t = trigger.AbsolutePosition
+				local edge = t + trigger.AbsoluteSize
+				if p.X >= t.X and p.X <= edge.X and p.Y >= t.Y and p.Y <= edge.Y then
+					return
+				end
+			end
 			if p.X < a.X or p.Y < a.Y or p.X > b.X or p.Y > b.Y then
 				closeDropdown()
 			end
@@ -814,7 +834,31 @@ function Library:CreateWindow(options)
 			b.BackgroundTransparency = 0
 			round(b, 4)
 			local caption = text(b, "", UDim2.new(1, -36, 1, 0), UDim2.fromOffset(8, 0), 13)
-			text(b, "⌄", UDim2.fromOffset(24, 28), UDim2.new(1, -24, 0, 0), 15, palette.dim)
+			local arrow = make(
+				"Frame",
+				{
+					Name = "Arrow",
+					BackgroundTransparency = 1,
+					Size = UDim2.fromOffset(12, 12),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.new(1, -16, 0.5, 0),
+				},
+				b
+			)
+			for _, part in ipairs({ { -2, 45 }, { 2, -45 } }) do
+				make(
+					"Frame",
+					{
+						BackgroundColor3 = palette.dim,
+						BorderSizePixel = 0,
+						Size = UDim2.fromOffset(6, 2),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.new(0.5, part[1], 0.5, 0),
+						Rotation = part[2],
+					},
+					arrow
+				)
+			end
 			local options = opts.Options or {}
 			local value = opts.Multi and table.clone(opts.Default or {}) or opts.Default or options[1]
 			local preview, previewText
@@ -828,7 +872,7 @@ function Library:CreateWindow(options)
 				previewText = text(f, "", UDim2.new(1, -100, 0, 64), UDim2.fromOffset(100, 65), 12, palette.dim)
 				previewText.TextWrapped = true
 			end
-			local c = { Instance = f, Native = { Class = "Dropdown", Instance = f } }
+			local c = { Instance = f, Trigger = b, Arrow = arrow, Native = { Class = "Dropdown", Instance = f } }
 			c.Set = function(v, fire)
 				value = opts.Multi and table.clone(type(v) == "table" and v or {}) or v
 				caption.Text = opts.Multi and table.concat(value, ", ") or tostring(value or "")
@@ -875,6 +919,11 @@ function Library:CreateWindow(options)
 				for i, name in ipairs(options) do
 					if tostring(name):lower():find(query, 1, true) then
 						local entry = button(popupList, tostring(name), UDim2.new(1, -4, 0, 30))
+						make("UIPadding", { PaddingLeft = UDim.new(0, 10) }, entry)
+						round(entry, 5)
+						local selected = opts.Multi and table.find(value, name) or not opts.Multi and value == name
+						entry.BackgroundColor3 = palette.accent
+						entry.BackgroundTransparency = selected and 0.88 or 1
 						entry.LayoutOrder = i
 						entry.ZIndex = 52
 						entry.TextXAlignment = Enum.TextXAlignment.Left
@@ -907,10 +956,11 @@ function Library:CreateWindow(options)
 				end
 				closeDropdown()
 				activeDropdown = c
+				arrow.Rotation = 180
 				popupSearch.Text = ""
 				local p = (b.AbsolutePosition - root.AbsolutePosition) / scale.Scale
 				popup.Size =
-					UDim2.fromOffset(b.AbsoluteSize.X / scale.Scale, math.min(260, math.max(110, #options * 33 + 52)))
+					UDim2.fromOffset(b.AbsoluteSize.X / scale.Scale, math.min(232, math.max(94, #options * 33 + 52)))
 				popup.Position = UDim2.fromOffset(
 					math.clamp(p.X, 0, (options.Width or 900) - popup.Size.X.Offset),
 					math.clamp(
@@ -1240,16 +1290,12 @@ function Library:CreateWindow(options)
 			local chip = button(frame, "", UDim2.fromOffset(32, 20), UDim2.new(1, -34, 0, 6))
 			chip.BackgroundTransparency = 0
 			round(chip, 5)
-			local panel = make(
-				"Frame",
-				{
-					BackgroundTransparency = 1,
-					Position = UDim2.fromOffset(0, 40),
-					Size = UDim2.new(1, 0, 0, 174),
-					Visible = false,
-				},
-				frame
-			)
+			local panel = make("Frame", {
+				BackgroundTransparency = 1,
+				Position = UDim2.fromOffset(0, 40),
+				Size = UDim2.new(1, 0, 0, 174),
+				Visible = false,
+			}, frame)
 			local square = button(panel, "", UDim2.new(1, -26, 0, 132))
 			square.BackgroundTransparency = 0
 			square.ClipsDescendants = true
@@ -1259,16 +1305,12 @@ function Library:CreateWindow(options)
 				{ BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Size = UDim2.fromScale(1, 1) },
 				square
 			)
-			make(
-				"UIGradient",
-				{
-					Transparency = NumberSequence.new({
-						NumberSequenceKeypoint.new(0, 0),
-						NumberSequenceKeypoint.new(1, 1),
-					}),
-				},
-				white
-			)
+			make("UIGradient", {
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
+			}, white)
 			local black = make(
 				"Frame",
 				{ BackgroundColor3 = Color3.new(), BorderSizePixel = 0, Size = UDim2.fromScale(1, 1) },
@@ -1534,6 +1576,10 @@ function Library:CreateWindow(options)
 					Transparency = appearance.Transparency,
 					FloatingEnabled = appearance.FloatingEnabled,
 					FloatingSize = appearance.FloatingSize,
+					RGB = appearance.RGB,
+					HideInfo = appearance.HideInfo,
+					Background = appearance.Background,
+					Panel = appearance.Panel,
 				},
 			})
 		)
@@ -1591,12 +1637,18 @@ function Library:CreateWindow(options)
 				or key == "Transparency"
 				or key == "FloatingEnabled"
 				or key == "FloatingSize"
+				or key == "RGB"
+				or key == "HideInfo"
+				or key == "Background"
+				or key == "Panel"
 			then
 				appearance[key] = value
 			end
 		end
 		self:SetTheme(appearance.Theme or "Dark")
 		self:SetAccent(appearance.Accent or "8D47FF")
+		self:SetSurfaceColor("base", appearance.Background)
+		self:SetSurfaceColor("panel", appearance.Panel)
 		self:ApplyAppearance()
 		self:ApplyFloating()
 	end
@@ -1709,27 +1761,20 @@ function Library:CreateWindow(options)
 		PlaybackSpeed = 2.8,
 	}, gui)
 	styleButton = function(b)
-		local effect = make("UIScale", { Scale = 1 }, b)
+		local baseTextSize = b:IsA("TextButton") and b.TextSize or nil
 		local hovered = false
 		local function animate(value)
 			if not b.Parent then
 				return
 			end
-			if appearance.Motion then
-				TweenService
-					:Create(
-						effect,
-						TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-						{ Scale = value }
-					)
+			if baseTextSize then
+				TweenService:Create(b, TweenInfo.new(0.14, Enum.EasingStyle.Quad), { TextSize = baseTextSize * value })
 					:Play()
-			else
-				effect.Scale = 1
 			end
 		end
 		uiRuntimeConnect(b.MouseEnter, function()
 			hovered = true
-			animate(1.025)
+			animate(1.035)
 		end)
 		uiRuntimeConnect(b.MouseLeave, function()
 			hovered = false
@@ -1898,6 +1943,13 @@ function Library:CreateWindow(options)
 		palette.accent = color
 		appearance.Accent = color:ToHex()
 	end
+	function Window:SetSurfaceColor(role, value)
+		local color = typeof(value) == "Color3" and value or Color3.fromHex(value)
+		recolor({ [role] = palette[role] }, { [role] = color })
+		palette[role] = color
+		appearance[role == "base" and "Background" or "Panel"] = color:ToHex()
+	end
+
 	function Window:SetTheme(name)
 		local themes = {
 			Dark = {
@@ -1982,9 +2034,33 @@ function Library:CreateWindow(options)
 				self:SetAccent(value)
 			end,
 		})
-		local layout = app:Section({ Title = "Window", Side = "Right" })
-		layout:Slider({
-			Title = "Scale",
+		colors:ColorPicker({
+			Title = "Background",
+			Default = appearance.Background,
+			Callback = function(value)
+				self:SetSurfaceColor("base", value)
+			end,
+		})
+		colors:ColorPicker({
+			Title = "Panel",
+			Default = appearance.Panel,
+			Callback = function(value)
+				self:SetSurfaceColor("panel", value)
+			end,
+		})
+		colors:Toggle({
+			Title = "RGB Mode",
+			Default = appearance.RGB,
+			Callback = function(value)
+				appearance.RGB = value
+				if not value then
+					self:SetAccent(appearance.Accent)
+				end
+			end,
+		})
+		local size = app:Section({ Title = "Scale", Side = "Right" })
+		size:Slider({
+			Title = "UI Scale",
 			Min = 60,
 			Max = 110,
 			Default = appearance.Scale,
@@ -1994,26 +2070,7 @@ function Library:CreateWindow(options)
 				self:ApplyAppearance()
 			end,
 		})
-		layout:Slider({
-			Title = "Opacity",
-			Min = 20,
-			Max = 100,
-			Default = 100 - appearance.Transparency,
-			Suffix = "%",
-			Callback = function(value)
-				appearance.Transparency = 100 - value
-				self:ApplyAppearance()
-			end,
-		})
-		layout:Toggle({
-			Title = "Floating button",
-			Default = appearance.FloatingEnabled,
-			Callback = function(value)
-				appearance.FloatingEnabled = value
-				self:ApplyFloating()
-			end,
-		})
-		layout:Slider({
+		size:Slider({
 			Title = "Floating size",
 			Min = 32,
 			Max = 96,
@@ -2023,10 +2080,54 @@ function Library:CreateWindow(options)
 				self:ApplyFloating()
 			end,
 		})
+		local background = app:Section({ Title = "Background", Side = "Right" })
+		background:Slider({
+			Title = "Background Opacity",
+			Min = 0,
+			Max = 100,
+			Default = 100 - appearance.Transparency,
+			Suffix = "%",
+			Callback = function(value)
+				appearance.Transparency = 100 - value
+				self:ApplyAppearance()
+			end,
+		})
+		local info = app:Section({ Title = "Display", Side = "Right" })
+		info:Toggle({
+			Title = "Floating button",
+			Default = appearance.FloatingEnabled,
+			Callback = function(value)
+				appearance.FloatingEnabled = value
+				self:ApplyFloating()
+			end,
+		})
+		info:Toggle({
+			Title = "Hide Info user",
+			Default = appearance.HideInfo,
+			Callback = function(value)
+				appearance.HideInfo = value
+				self:ApplyAppearance()
+			end,
+		})
 		local configs = category:Tab({ Title = "Configs" })
 		configs:Section({ Title = "Configs", Side = "Left" }):ConfigManager()
 		return app, configs
 	end
+	local rgbTime = 0
+	uiRuntimeConnect(RunService.Heartbeat, function(dt)
+		if not appearance.RGB then
+			return
+		end
+		rgbTime += dt
+		if rgbTime < 0.06 then
+			return
+		end
+		rgbTime = 0
+		local saved = appearance.Accent
+		Window:SetAccent(Color3.fromHSV((os.clock() * 0.12) % 1, 0.75, 1))
+		appearance.Accent = saved
+	end)
+
 	function Window:GetLastError()
 		return Runtime.LastUIError
 	end
