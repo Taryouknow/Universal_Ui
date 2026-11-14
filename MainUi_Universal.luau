@@ -1,9 +1,9 @@
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Library.luau?v=2"))()
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau?v=3"))()
 
 local Window = UI:CreateWindow({
 	Title = "UNIVERSAL",
 	Author = "TaTarzx",
-	Version = "v1.0",
+	Version = "v3",
 	Logo = "rbxassetid://120549670549494",
 	FloatLogo = "rbxassetid://99287950951825",
 	Folder = "Universal_Ui",
@@ -11,85 +11,13 @@ local Window = UI:CreateWindow({
 	Height = 660,
 })
 
-Window:SidebarSection("Menu")
+local Home = Window:Category({ Title = "Home", Icon = "home" })
+local Overview = Home:Tab({ Title = "Overview", Default = true })
+local Main = Window:Category({ Title = "Main", Icon = "main" })
+local General = Main:Tab({ Title = "General" })
 
-local Home = Window:Tab({
-	Title = "Home",
-	Icon = "home",
-	Default = true,
-})
-
-local Main = Window:Tab({
-	Title = "Main",
-	Icon = "main",
-})
-
-Window:SidebarSection("System")
-
-local Settings = Window:Tab({
-	Title = "Setting",
-	Icon = "settings",
-})
-
-local Interface = Settings:Section({ Title = "Interface", Side = "Left" })
-
-Interface:Slider({
-	Title = "Scale",
-	Min = 60,
-	Max = 110,
-	Default = Window.Appearance.Scale,
-	Suffix = "%",
-	Callback = function(value)
-		Window.Appearance.Scale = value
-		Window:ApplyAppearance()
-	end,
-})
-
-Interface:Toggle({
-	Title = "Motion",
-	Default = Window.Appearance.Motion,
-	Callback = function(value)
-		Window:SetMotion(value)
-	end,
-})
-
-Interface:Toggle({
-	Title = "Smooth scroll",
-	Default = Window.Appearance.SmoothScroll,
-	Callback = function(value)
-		Window:SetSmoothScroll(value)
-	end,
-})
-
-Interface:Toggle({
-	Title = "Click sound",
-	Default = Window.Appearance.Sound,
-	Callback = function(value)
-		Window:SetSound(value)
-	end,
-})
-
-Interface:Slider({
-	Title = "Volume",
-	Min = 0,
-	Max = 100,
-	Default = math.round(Window.Appearance.Volume * 100),
-	Suffix = "%",
-	Callback = function(value)
-		Window:SetVolume(value / 100)
-	end,
-})
-
-Interface:Keybind({
-	Title = "Menu key",
-	Default = Enum.KeyCode.RightShift,
-	Callback = function(key)
-		Window.Native:SetKeybind(key)
-	end,
-})
-
-Settings:Section({ Title = "Config", Side = "Right" }):ConfigManager()
-
+local Setting = Window:Category({ Title = "Setting", Icon = "settings" })
+Window:AddSettings(Setting)
 Window:LoadAutoload()
 
 return Window

@@ -1,55 +1,52 @@
 # Universal UI
 
-A blank Roblox UI with Home, Main and Setting. No game scripts are loaded.
+Standalone Roblox UI library. No game systems.
+
+- [Source.luau](Source.luau): main library
+- [Example.luau](Example.luau): controls and layout examples
+- [MainUi_Universal.luau](MainUi_Universal.luau): empty starting UI
+- Library.luau: compatibility loader
+
+## Load
 
 ```lua
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Library.luau"))()
-
-local Window = UI:CreateWindow({
-    Title = "UNIVERSAL",
-    Author = "TaTarzx",
-    Folder = "Universal_Ui",
-    Logo = "rbxassetid://120549670549494",
-    FloatLogo = "rbxassetid://99287950951825",
-})
-
-Window:SidebarSection("Menu")
-
-local Home = Window:Tab({ Title = "Home", Icon = "home", Default = true })
-local Main = Window:Tab({ Title = "Main", Icon = "main" })
-local Settings = Window:Tab({ Title = "Setting", Icon = "settings" })
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Example.luau"))()
 ```
 
-## Add controls
+## Build
 
 ```lua
-local General = Main:Section({ Title = "General", Side = "Left" })
-
-General:Toggle({
-    Title = "Enabled",
-    Default = false,
-    Callback = function(value)
-        print(value)
-    end,
-})
-
-General:Slider({ Title = "Speed", Min = 0, Max = 100, Default = 50 })
-General:Dropdown({ Title = "Mode", Options = { "A", "B" }, Default = "A" })
-General:Textbox({ Title = "Name", Default = "" })
-General:Button({ Title = "Run", Callback = function() end })
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau"))()
+local Window = UI:CreateWindow({Title = "My UI", Folder = "MyUi"})
+local Home = Window:Category({Title = "Home", Icon = "home"})
+local Main = Home:Tab({Title = "Main", Default = true})
+local Left = Main:Section({Title = "Options", Side = "Left"})
+Left:Toggle({Title = "Enabled", Default = false, Callback = function(value)
+    print(value)
+end})
+local Setting = Window:Category({Title = "Setting", Icon = "settings"})
+Window:AddSettings(Setting)
+Window:LoadAutoload()
 ```
 
-`Main:Category({ Title = "Other" })` adds a subcategory. It has the same `Section` method.
-The top navigation, categories and both content columns scroll independently.
+Top icons are Categories. Each category contains Tabs. Each tab has Sections placed Left or Right. Both columns scroll independently. Icons remain centered when tabs change.
 
-## Settings
+## Controls
 
-`MainUi_Universal.luau` is the ready-to-run blank template. It includes scale,
-motion, smooth scrolling, click sound, volume, menu key and a config manager.
-Right Shift or the floating logo opens/closes the window.
+Toggle, Checkbox, Dropdown (single/multiple, searchable), Select (single/multiple), Radio, Slider, Textbox, Keybind, ColorPicker, Button, ButtonGroup, Image, Text, Paragraph, Divider, Banner, StatGrid, Progress and Process (alias).
 
-Controls return `Set(value, fire)` and `Get()`. Use `Set(value, false)` for a silent update.
-The window supports `SetVisible`, `Unload`, `SaveConfig`, `LoadConfig` and `LoadAutoload`.
-Configs stay in the executor workspace, under the configured folder.
+Most value controls return `control.Get()` and `control.Set(value)`. Text and Paragraph support Set. Progress uses values from 0 to 1: `progress.Set(.5, "50%")`. See Example for options.
 
-This library uses ordinary Roblox GUI instances and does not promise concealment.
+`Window:Notify({Title = "Done", Content = "Saved", Duration = 4})` shows a dismissible bubble. `Window:Bubble` is an alias. Opening the menu includes a short bubble animation. Hover, click and scroll effects are enabled by default.
+
+## Settings and configs
+
+`Window:AddSettings(category)` adds App and Configs tabs. App contains theme/accent color, scale, opacity, floating-button visibility and size. Configs supports named saves, loads, deletes and autoload. Files are local under `<Folder>/configs`; executor file APIs are required. Saved configs contain control values and appearance. Choose a saved config and Set autoload to restore it on the next launch.
+
+`Window:SaveConfig("name")`, `Window:LoadConfig("name")`, `Window:LoadAutoload()` are available directly. Keep the same control order when sharing configs across versions.
+
+## Images
+
+`Logo`, `FloatLogo` and `ProfileImage` accept Roblox image content IDs. ProfileImage has a transparent background and no round mask. PNG navigation icons are downloaded and cached locally; file and custom-asset APIs are needed. `AssetUrl` can override the raw asset base URL.
+
+RightShift toggles the menu. The floating button can be dragged. Reloading replaces the previous Universal UI window. `Window:Unload()` closes and cleans up the UI.
