@@ -293,12 +293,45 @@ function Library:CreateWindow(options)
 	round(shadow, 12)
 	local body = surface(root, "Workspace", UDim2.new(1, -84, 1, -116), UDim2.fromOffset(42, 110), palette.base)
 	round(body, 10)
+    local function syncShadow()
+        shadow.Position=body.Position+UDim2.fromOffset(-4,4)
+        shadow.Size=body.Size+UDim2.fromOffset(8,0)
+    end
+    uiRuntimeConnect(body:GetPropertyChangedSignal("Position"),syncShadow)
+    uiRuntimeConnect(body:GetPropertyChangedSignal("Size"),syncShadow)
+    syncShadow()
+
+	local bodyDrag = make(
+		"Frame",
+		{
+			Name = "DragHandle",
+			Active = true,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, -16, 0, 16),
+			Position = UDim2.fromOffset(8, 0),
+		},
+		body
+	)
+	local grip = make(
+		"Frame",
+		{
+			Name = "Grip",
+			BackgroundColor3 = Color3.fromRGB(82, 78, 91),
+			BackgroundTransparency = 0.25,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Size = UDim2.fromOffset(34, 2),
+			Position = UDim2.new(0.5, 0, 0, 6),
+		},
+		bodyDrag
+	)
+	round(grip, 1)
 	local tabBar = make("ScrollingFrame", {
 		Name = "Tabs",
 		BackgroundColor3 = palette.panel,
 		BorderSizePixel = 0,
-		Size = UDim2.new(1, -12, 0, 64),
-		Position = UDim2.fromOffset(6, 6),
+		Size = UDim2.new(1, -12, 0, 56),
+		Position = UDim2.fromOffset(6, 18),
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.X,
 		ScrollingDirection = Enum.ScrollingDirection.X,
@@ -731,6 +764,7 @@ function Library:CreateWindow(options)
 		end)
 	end
 	draggable(header, header)
+	draggable(bodyDrag, body)
 	draggable(tabBar, body)
 	draggable(floating, floating)
 	local groups = {}
@@ -1132,8 +1166,8 @@ function Library:CreateWindow(options)
 				arrow.Rotation = 180
 				popupSearch.Text = ""
 				local p = (b.AbsolutePosition - root.AbsolutePosition) / scale.Scale
-                local minimum=-root.AbsolutePosition/scale.Scale
-                local maximum=(workspace.CurrentCamera.ViewportSize-root.AbsolutePosition)/scale.Scale
+				local minimum = -root.AbsolutePosition / scale.Scale
+				local maximum = (workspace.CurrentCamera.ViewportSize - root.AbsolutePosition) / scale.Scale
 				popup.Size =
 					UDim2.fromOffset(b.AbsoluteSize.X / scale.Scale, math.min(232, math.max(94, #options * 33 + 52)))
 				popup.Position = UDim2.fromOffset(
@@ -1698,6 +1732,7 @@ function Library:CreateWindow(options)
 		end
 		page.TabButton = button(tabBar, opts.Title, UDim2.fromOffset(150, 64))
 		page.TabButton:SetAttribute("HoverStyle", "Highlight")
+		draggable(page.TabButton, body)
 		page.TabButton.Visible = false
 		round(page.TabButton, 7)
 		page.Underline = make("Frame", {
