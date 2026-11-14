@@ -1,17 +1,17 @@
 # Universal UI
 
-`Source.luau` is the library. `Example.luau` has the controls and Dashboard.
+`MainUi_Universal.luau` is the personal UI with Dashboard and settings.
+
+`Library/Source.luau` is the library. `Library/Example.luau` has the full control examples.
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Example.luau?v=final"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Library/Example.luau"))()
 ```
 
-Top menu: Category > Tab > Section. Sections use `Left` or `Right`.
+Drag the top bar and the lower tab bar to move each panel separately.
 
-Changes reset on a new run. Save and load from Configs when you want to keep them.
+Category > Tab > Section. Sections use Left or Right.
 
-Icons live in assets. Use `Icon = "car"` for a category or `Window:Icon("car")` for an image. See assets/icons.json for all 87 names. Icons are from Lucide; the license is in assets.
+Changes reset on a new run. Save and load from Configs yourself.
 
-The Discord button copies the invite and tries to open Discord desktop. If Discord is closed or unavailable, paste the copied link in your browser.
-
-RightShift toggles the menu. Drag the logo button to move it.
+Use `Icon = "car"` or `Window:Icon("car")`. All 87 names are in assets/icons.json. Lucide license is in assets.
