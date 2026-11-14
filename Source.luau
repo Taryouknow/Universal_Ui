@@ -63,7 +63,7 @@ function Library:CreateWindow(options)
 			Size = size,
 			Position = pos or UDim2.new(),
 			Text = tostring(value),
-			Font = Enum.Font.BuilderSans,
+			Font = Enum.Font.Gotham,
 			TextSize = fontSize or 14,
 			TextColor3 = color or palette.text,
 			TextXAlignment = Enum.TextXAlignment.Left,
@@ -76,7 +76,7 @@ function Library:CreateWindow(options)
 			Size = size,
 			Position = pos or UDim2.new(),
 			Text = value,
-			Font = Enum.Font.BuilderSans,
+			Font = Enum.Font.Gotham,
 			TextSize = 14,
 			TextColor3 = palette.text,
 			AutoButtonColor = false,
@@ -114,6 +114,22 @@ function Library:CreateWindow(options)
 		icons[name] = { Image = getcustomasset(path) }
 	end
 
+	local function logoImage(value)
+		local file = value == "rbxassetid://120549670549494" and "logo"
+			or value == "rbxassetid://99287950951825" and "float-logo"
+		if not file then
+			return value
+		end
+		local path = (options.Folder or "Universal_Ui") .. "/assets/v4/" .. file .. ".png"
+		local ok, result = pcall(function()
+			if not isfile(path) then
+				writefile(path, game:HttpGet(assetUrl .. file .. ".png?v=4"))
+			end
+			return getcustomasset(path)
+		end)
+		return ok and result or value
+	end
+
 	local gui = make("ScreenGui", {
 		Name = "UniversalUi",
 		ResetOnSpawn = false,
@@ -135,7 +151,7 @@ function Library:CreateWindow(options)
 	make("ImageLabel", {
 		Name = "Logo",
 		BackgroundTransparency = 1,
-		Image = options.Logo or "rbxassetid://120549670549494",
+		Image = logoImage(options.Logo or "rbxassetid://120549670549494"),
 		ScaleType = Enum.ScaleType.Fit,
 		Position = UDim2.fromOffset(18, 17),
 		Size = UDim2.fromOffset(40, 40),
@@ -198,6 +214,7 @@ function Library:CreateWindow(options)
 	local navPadding = make("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }, nav)
 	local pages = make("Frame", {
 		Name = "Pages",
+		ClipsDescendants = true,
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(6, 78),
 		Size = UDim2.new(1, -12, 1, -84),
@@ -215,7 +232,7 @@ function Library:CreateWindow(options)
 		PlaceholderText = "Search",
 		Text = "",
 		ClearTextOnFocus = false,
-		Font = Enum.Font.BuilderSans,
+		Font = Enum.Font.Gotham,
 		TextSize = 14,
 		TextColor3 = palette.text,
 		PlaceholderColor3 = palette.dim,
@@ -268,7 +285,7 @@ function Library:CreateWindow(options)
 	local blur = make("BlurEffect", { Name = "UniversalBlur", Size = 0, Enabled = false }, game:GetService("Lighting"))
 	local floating = make("ImageButton", {
 		Name = "Menu",
-		Image = options.FloatLogo or "rbxassetid://99287950951825",
+		Image = logoImage(options.FloatLogo or "rbxassetid://99287950951825"),
 		ScaleType = Enum.ScaleType.Fit,
 		BackgroundColor3 = palette.panel,
 		BorderSizePixel = 0,
@@ -633,38 +650,42 @@ function Library:CreateWindow(options)
 			return f
 		end
 		function section:Toggle(opts)
-			local f = row()
+			local frame = row(36)
 			local value = opts.Default == true
-			text(f, opts.Title, UDim2.new(1, -32, 1, 0), nil, 14)
-			local hit = button(f, "", UDim2.fromScale(1, 1))
-			local square = make("Frame", {
-				Size = UDim2.fromOffset(11, 11),
-				Position = UDim2.new(1, -13, 0.5, -5),
-				BackgroundColor3 = palette.check,
+			text(frame, opts.Title, UDim2.new(1, -55, 1, 0), nil, 14)
+			local track = button(frame, "", UDim2.fromOffset(38, 22), UDim2.new(1, -40, 0.5, -11))
+			track.BackgroundTransparency = 0
+			round(track, 11)
+			local knob = make("Frame", {
+				Size = UDim2.fromOffset(16, 16),
+				Position = UDim2.fromOffset(3, 3),
+				BackgroundColor3 = palette.text,
 				BorderSizePixel = 0,
-			}, f)
-			round(square, 1)
-			local glow = make("UIStroke", { Color = palette.check, Thickness = 3, Transparency = 0.85 }, square)
-			local c = { Instance = f, Native = { Class = "Toggle", Instance = f } }
-			c.Set = function(v, fire)
-				value = v == true
-				square.BackgroundColor3 = value and palette.check or Color3.fromRGB(24, 24, 24)
-				glow.Enabled = value
+			}, track)
+			round(knob, 8)
+			local control = { Instance = frame, Native = { Class = "Toggle", Instance = frame } }
+			control.Set = function(nextValue, fire)
+				value = nextValue == true
+				TweenService
+					:Create(track, TweenInfo.new(0.16), { BackgroundColor3 = value and palette.accent or palette.line })
+					:Play()
+				TweenService:Create(knob, TweenInfo.new(0.16), { Position = UDim2.fromOffset(value and 19 or 3, 3) })
+					:Play()
 				if fire ~= false then
 					callback(opts.Callback)(value)
 				end
 			end
-			c.Get = function()
+			control.Get = function()
 				return value
 			end
-			function c.Native:GetState()
+			function control.Native:GetState()
 				return value
 			end
-			uiRuntimeConnect(hit.Activated, function()
-				c.Set(not value, true)
+			uiRuntimeConnect(track.Activated, function()
+				control.Set(not value)
 			end)
-			c.Set(value, false)
-			return register(tab.Group.name .. "/" .. tab.Title .. "/" .. o.Title, opts.Title, c, "toggle")
+			control.Set(value, false)
+			return register(tab.Group.name .. "/" .. tab.Title .. "/" .. o.Title, opts.Title, control, "toggle")
 		end
 		function section:Button(opts)
 			local f = row(32)
@@ -685,7 +706,7 @@ function Library:CreateWindow(options)
 				Text = tostring(opts.Default or ""),
 				PlaceholderText = opts.Placeholder or "",
 				ClearTextOnFocus = false,
-				Font = Enum.Font.BuilderSans,
+				Font = Enum.Font.Gotham,
 				TextSize = 14,
 				TextColor3 = palette.text,
 				TextXAlignment = Enum.TextXAlignment.Left,
@@ -960,7 +981,7 @@ function Library:CreateWindow(options)
 			local f = row(100)
 			make("ImageLabel", {
 				BackgroundTransparency = 1,
-				Image = options.Logo or "rbxassetid://120549670549494",
+				Image = logoImage(options.Logo or "rbxassetid://120549670549494"),
 				ScaleType = Enum.ScaleType.Fit,
 				Size = UDim2.fromOffset(60, 60),
 				Position = UDim2.fromOffset(0, 8),
@@ -1105,7 +1126,7 @@ function Library:CreateWindow(options)
 			local image = make("ImageLabel", {
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, 0, 0, height),
-				Image = opts.Image or "",
+				Image = logoImage(opts.Image or ""),
 				ScaleType = opts.ScaleType or Enum.ScaleType.Fit,
 			}, frame)
 			if opts.Caption then
@@ -1116,7 +1137,7 @@ function Library:CreateWindow(options)
 			return {
 				Instance = frame,
 				Set = function(value)
-					image.Image = value
+					image.Image = logoImage(value)
 				end,
 				Get = function()
 					return image.Image
@@ -1124,25 +1145,37 @@ function Library:CreateWindow(options)
 			}
 		end
 		function section:Divider(value)
-			local frame = row(18)
-			make("Frame", {
-				BackgroundColor3 = palette.line,
-				BorderSizePixel = 0,
-				Size = UDim2.new(1, 0, 0, 1),
-				Position = UDim2.fromOffset(0, 9),
-			}, frame)
-			if value then
-				local label =
-					text(frame, tostring(value), UDim2.fromOffset(100, 18), UDim2.new(0.5, -50, 0, 0), 11, palette.dim)
-				label.BackgroundColor3 = palette.panel
-				label.BackgroundTransparency = 0
+			local frame = row(24)
+			local function line(size, position)
+				make(
+					"Frame",
+					{ BackgroundColor3 = palette.line, BorderSizePixel = 0, Size = size, Position = position },
+					frame
+				)
+			end
+			if value and tostring(value) ~= "" then
+				local label = text(frame, tostring(value), UDim2.new(1, -24, 1, 0), nil, 11, palette.dim)
 				label.TextXAlignment = Enum.TextXAlignment.Center
+				local width = game:GetService("TextService")
+					:GetTextSize(tostring(value), 11, Enum.Font.Gotham, Vector2.new(1000, 24)).X + 20
+				line(UDim2.new(0.5, -width / 2, 0, 1), UDim2.fromOffset(0, 12))
+				line(UDim2.new(0.5, -width / 2, 0, 1), UDim2.new(0.5, width / 2, 0, 12))
+				label.Size = UDim2.fromScale(1, 1)
+			else
+				line(UDim2.new(1, 0, 0, 1), UDim2.fromOffset(0, 12))
 			end
 			return frame
 		end
 		function section:Select(opts)
 			local items = opts.Options or {}
-			local frame = row(26 + #items * 28)
+			local frame = row(64)
+			local strip = make("Frame", {
+				BackgroundColor3 = palette.line,
+				BorderSizePixel = 0,
+				Position = UDim2.fromOffset(0, 27),
+				Size = UDim2.new(1, 0, 0, 32),
+			}, frame)
+			round(strip, 6)
 			text(frame, opts.Title or "Select", UDim2.new(1, 0, 0, 24), nil, 13, palette.dim)
 			local value = opts.Multi and table.clone(opts.Default or {}) or opts.Default or items[1]
 			local buttons = {}
@@ -1152,7 +1185,8 @@ function Library:CreateWindow(options)
 				for name, entry in pairs(buttons) do
 					local selected = opts.Multi and table.find(value, name) ~= nil or not opts.Multi and name == value
 					entry.Button.TextColor3 = selected and palette.text or palette.dim
-					entry.Dot.BackgroundColor3 = selected and palette.check or palette.line
+					entry.Button.BackgroundTransparency = selected and 0 or 1
+					entry.Button.BackgroundColor3 = palette.accent
 				end
 				if fire ~= false then
 					callback(opts.Callback)(value)
@@ -1162,17 +1196,15 @@ function Library:CreateWindow(options)
 				return opts.Multi and table.clone(value) or value
 			end
 			for index, name in ipairs(items) do
-				local b =
-					button(frame, tostring(name), UDim2.new(1, 0, 0, 26), UDim2.fromOffset(0, 26 + (index - 1) * 28))
-				b.TextXAlignment = Enum.TextXAlignment.Left
-				local dot = make("Frame", {
-					Size = UDim2.fromOffset(8, 8),
-					Position = UDim2.new(1, -12, 0.5, -4),
-					BackgroundColor3 = palette.line,
-					BorderSizePixel = 0,
-				}, b)
-				round(dot, opts.Multi and 1 or 4)
-				buttons[name] = { Button = b, Dot = dot }
+				local b = button(
+					strip,
+					tostring(name),
+					UDim2.new(1 / math.max(1, #items), -4, 1, -6),
+					UDim2.new((index - 1) / math.max(1, #items), 2, 0, 3)
+				)
+				b.TextSize = 12
+				round(b, 4)
+				buttons[name] = { Button = b }
 				uiRuntimeConnect(b.Activated, function()
 					if opts.Multi then
 						local nextValue = table.clone(value)
@@ -1203,79 +1235,155 @@ function Library:CreateWindow(options)
 			return self:Progress(opts)
 		end
 		function section:ColorPicker(opts)
-			local frame = row(60)
-			text(frame, opts.Title or "Color", UDim2.new(1, -70, 0, 24), nil, 14)
-			local chip = button(frame, "", UDim2.fromOffset(30, 18), UDim2.new(1, -32, 0, 3))
+			local frame = row(36)
+			text(frame, opts.Title or "Color", UDim2.new(1, -55, 0, 32), nil, 14)
+			local chip = button(frame, "", UDim2.fromOffset(32, 20), UDim2.new(1, -34, 0, 6))
 			chip.BackgroundTransparency = 0
-			round(chip, 4)
-			local input = make("TextBox", {
-				BackgroundColor3 = palette.line,
-				BorderSizePixel = 0,
-				Size = UDim2.new(1, 0, 0, 28),
-				Position = UDim2.fromOffset(0, 29),
-				Text = "",
-				ClearTextOnFocus = false,
-				Font = Enum.Font.BuilderSans,
-				TextColor3 = palette.text,
-				TextSize = 13,
-			}, frame)
-			round(input, 4)
-			local colors = make(
+			round(chip, 5)
+			local panel = make(
 				"Frame",
 				{
 					BackgroundTransparency = 1,
-					Position = UDim2.fromOffset(0, 64),
-					Size = UDim2.new(1, 0, 0, 60),
+					Position = UDim2.fromOffset(0, 40),
+					Size = UDim2.new(1, 0, 0, 174),
 					Visible = false,
 				},
 				frame
 			)
+			local square = button(panel, "", UDim2.new(1, -26, 0, 132))
+			square.BackgroundTransparency = 0
+			square.ClipsDescendants = true
+			round(square, 5)
+			local white = make(
+				"Frame",
+				{ BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Size = UDim2.fromScale(1, 1) },
+				square
+			)
+			make(
+				"UIGradient",
+				{
+					Transparency = NumberSequence.new({
+						NumberSequenceKeypoint.new(0, 0),
+						NumberSequenceKeypoint.new(1, 1),
+					}),
+				},
+				white
+			)
+			local black = make(
+				"Frame",
+				{ BackgroundColor3 = Color3.new(), BorderSizePixel = 0, Size = UDim2.fromScale(1, 1) },
+				square
+			)
+			make("UIGradient", {
+				Rotation = 90,
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(1, 0),
+				}),
+			}, black)
+			local marker = make(
+				"Frame",
+				{ AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), BackgroundTransparency = 1 },
+				square
+			)
+			round(marker, 5)
+			make("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }, marker)
+			local hue = button(panel, "", UDim2.fromOffset(16, 132), UDim2.new(1, -16, 0, 0))
+			hue.BackgroundTransparency = 0
+			hue.BackgroundColor3 = Color3.new(1, 1, 1)
+			round(hue, 5)
+			local keys = {}
+			for i = 0, 6 do
+				keys[#keys + 1] = ColorSequenceKeypoint.new(i / 6, Color3.fromHSV(i / 6, 1, 1))
+			end
+			make("UIGradient", { Rotation = 90, Color = ColorSequence.new(keys) }, hue)
+			local hueMarker = make("Frame", {
+				Size = UDim2.new(1, 4, 0, 3),
+				Position = UDim2.fromOffset(-2, 0),
+				BackgroundColor3 = Color3.new(1, 1, 1),
+				BorderSizePixel = 0,
+			}, hue)
+			local input = make("TextBox", {
+				BackgroundColor3 = palette.line,
+				BorderSizePixel = 0,
+				Size = UDim2.new(1, 0, 0, 28),
+				Position = UDim2.fromOffset(0, 142),
+				Text = "",
+				ClearTextOnFocus = false,
+				Font = Enum.Font.Gotham,
+				TextColor3 = palette.text,
+				TextSize = 13,
+			}, panel)
+			round(input, 4)
+			local h, s, v = 0, 1, 1
 			local value
 			local control = { Instance = frame }
-			control.Set = function(v, fire)
-				local color = typeof(v) == "Color3" and v or Color3.fromHex(tostring(v):gsub("#", ""))
-				value = color
-				chip.BackgroundColor3 = color
-				input.Text = "#" .. color:ToHex()
+			control.Set = function(nextValue, fire, keepHue)
+				value = typeof(nextValue) == "Color3" and nextValue or Color3.fromHex(tostring(nextValue):gsub("#", ""))
+				if not keepHue then
+					h, s, v = value:ToHSV()
+				end
+				chip.BackgroundColor3 = value
+				square.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+				marker.Position = UDim2.fromScale(s, 1 - v)
+				hueMarker.Position = UDim2.new(0, -2, h, -1)
+				input.Text = "#" .. value:ToHex()
 				if fire ~= false then
-					callback(opts.Callback)(color)
+					callback(opts.Callback)(value)
 				end
 			end
 			control.Get = function()
 				return value:ToHex()
 			end
-			local swatches = {
-				"8D47FF",
-				"6279FB",
-				"49A6FF",
-				"32CDA0",
-				"8DD45C",
-				"F1C457",
-				"F58F54",
-				"ED6262",
-				"E76EA5",
-				"EEEEF0",
-				"9999A4",
-				"191A20",
-			}
-			for index, hex in ipairs(swatches) do
-				local col = (index - 1) % 6
-				local line = math.floor((index - 1) / 6)
-				local b = button(colors, "", UDim2.new(1 / 6, -5, 0, 24), UDim2.new(col / 6, 0, 0, line * 30))
-				b.BackgroundTransparency = 0
-				b.BackgroundColor3 = Color3.fromHex(hex)
-				round(b, 4)
-				uiRuntimeConnect(b.Activated, function()
-					control.Set(hex, true)
+			local dragging
+			local function update(position)
+				if not panel.Visible then
+					return
+				end
+				if dragging == "hue" then
+					h = math.clamp((position.Y - hue.AbsolutePosition.Y) / hue.AbsoluteSize.Y, 0, 1)
+				else
+					s = math.clamp((position.X - square.AbsolutePosition.X) / square.AbsoluteSize.X, 0, 1)
+					v = 1 - math.clamp((position.Y - square.AbsolutePosition.Y) / square.AbsoluteSize.Y, 0, 1)
+				end
+				control.Set(Color3.fromHSV(h, s, v), true, true)
+			end
+			for _, entry in ipairs({ { square, "square" }, { hue, "hue" } }) do
+				uiRuntimeConnect(entry[1].InputBegan, function(event)
+					if
+						event.UserInputType == Enum.UserInputType.MouseButton1
+						or event.UserInputType == Enum.UserInputType.Touch
+					then
+						dragging = entry[2]
+						update(event.Position)
+					end
 				end)
 			end
+			uiRuntimeConnect(Input.InputChanged, function(event)
+				if
+					dragging
+					and (
+						event.UserInputType == Enum.UserInputType.MouseMovement
+						or event.UserInputType == Enum.UserInputType.Touch
+					)
+				then
+					update(event.Position)
+				end
+			end)
+			uiRuntimeConnect(Input.InputEnded, function(event)
+				if
+					event.UserInputType == Enum.UserInputType.MouseButton1
+					or event.UserInputType == Enum.UserInputType.Touch
+				then
+					dragging = nil
+				end
+			end)
 			uiRuntimeConnect(chip.Activated, function()
-				colors.Visible = not colors.Visible
-				frame.Size = UDim2.new(1, 0, 0, colors.Visible and 128 or 60)
+				panel.Visible = not panel.Visible
+				frame.Size = UDim2.new(1, 0, 0, panel.Visible and 218 or 36)
 			end)
 			uiRuntimeConnect(input.FocusLost, function()
-				local ok = pcall(control.Set, input.Text, true)
-				if not ok then
+				if not pcall(control.Set, input.Text, true) then
 					input.Text = "#" .. value:ToHex()
 				end
 			end)
@@ -1317,6 +1425,7 @@ function Library:CreateWindow(options)
 		for i, side in ipairs({ "Left", "Right" }) do
 			local column = make("ScrollingFrame", {
 				Name = side,
+				ClipsDescendants = true,
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				Size = UDim2.new(0.5, -5, 1, 0),

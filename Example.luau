@@ -1,4 +1,4 @@
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau?v=3"))()
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau?v=4"))()
 
 local Window = UI:CreateWindow({
 	Title = "UNIVERSAL",
@@ -48,6 +48,7 @@ local Choices = General:Section({ Title = "Select", Side = "Right" })
 Choices:Select({ Title = "Choice", Options = { "Small", "Medium", "Large" }, Default = "Medium" })
 Choices:Select({ Title = "Many", Options = { "Red", "Green", "Blue" }, Default = { "Red" }, Multi = true })
 Choices:Radio({ Title = "Radio", Options = { "A", "B" }, Default = "A" })
+Choices:Divider()
 Choices:Divider("Actions")
 Choices:ButtonGroup({
 	Buttons = {
