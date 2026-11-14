@@ -329,8 +329,13 @@ function Library:CreateWindow(options)
 		scale.Scale = value
 	end
 	function Window:ApplyAppearance()
-		avatar.Visible = not appearance.HideInfo
-		displayInfo.Visible = not appearance.HideInfo
+		avatar.Visible = true
+		avatar.Image = appearance.HideInfo and logoImage(options.Logo or "rbxassetid://120549670549494")
+			or options.ProfileImage
+			or ("rbxthumb://type=AvatarHeadShot&id=" .. player.UserId .. "&w=150&h=150")
+		avatar.ImageColor3 = Color3.new(1, 1, 1)
+		displayInfo.Visible = true
+		displayInfo.Text = appearance.HideInfo and (options.Title or "UNIVERSAL") or player.DisplayName
 		usernameInfo.Visible = not appearance.HideInfo
 		local viewport = workspace.CurrentCamera.ViewportSize
 		scale.Scale = math.max(
@@ -583,12 +588,13 @@ function Library:CreateWindow(options)
 		local count = #group.pages
 		local available = tabBar.AbsoluteSize.X / math.max(0.01, scale.Scale)
 		for index, page in ipairs(group.pages) do
+			local target = page.TabButton.Parent.Name == "HoverHost" and page.TabButton.Parent or page.TabButton
 			if count * 140 <= available then
-				page.TabButton.Size = UDim2.new(1 / math.max(1, count), 0, 1, 0)
-				page.TabButton.Position = UDim2.fromScale((index - 1) / math.max(1, count), 0)
+				target.Size = UDim2.new(1 / math.max(1, count), 0, 1, 0)
+				target.Position = UDim2.fromScale((index - 1) / math.max(1, count), 0)
 			else
-				page.TabButton.Size = UDim2.fromOffset(140, 64)
-				page.TabButton.Position = UDim2.fromOffset((index - 1) * 140, 0)
+				target.Size = UDim2.fromOffset(140, 64)
+				target.Position = UDim2.fromOffset((index - 1) * 140, 0)
 			end
 		end
 	end
@@ -834,30 +840,22 @@ function Library:CreateWindow(options)
 			b.BackgroundTransparency = 0
 			round(b, 4)
 			local caption = text(b, "", UDim2.new(1, -36, 1, 0), UDim2.fromOffset(8, 0), 13)
-			local arrow = make(
-				"Frame",
-				{
-					Name = "Arrow",
-					BackgroundTransparency = 1,
-					Size = UDim2.fromOffset(12, 12),
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Position = UDim2.new(1, -16, 0.5, 0),
-				},
-				b
-			)
+			local arrow = make("Frame", {
+				Name = "Arrow",
+				BackgroundTransparency = 1,
+				Size = UDim2.fromOffset(12, 12),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(1, -16, 0.5, 0),
+			}, b)
 			for _, part in ipairs({ { -2, 45 }, { 2, -45 } }) do
-				make(
-					"Frame",
-					{
-						BackgroundColor3 = palette.dim,
-						BorderSizePixel = 0,
-						Size = UDim2.fromOffset(6, 2),
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						Position = UDim2.new(0.5, part[1], 0.5, 0),
-						Rotation = part[2],
-					},
-					arrow
-				)
+				make("Frame", {
+					BackgroundColor3 = palette.dim,
+					BorderSizePixel = 0,
+					Size = UDim2.fromOffset(6, 2),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.new(0.5, part[1], 0.5, 0),
+					Rotation = part[2],
+				}, arrow)
 			end
 			local options = opts.Options or {}
 			local value = opts.Multi and table.clone(opts.Default or {}) or opts.Default or options[1]
@@ -911,7 +909,7 @@ function Library:CreateWindow(options)
 			end
 			c.Render = function()
 				for _, child in ipairs(popupList:GetChildren()) do
-					if child:IsA("TextButton") then
+					if child:IsA("TextButton") or child.Name == "HoverHost" then
 						child:Destroy()
 					end
 				end
@@ -1761,20 +1759,67 @@ function Library:CreateWindow(options)
 		PlaybackSpeed = 2.8,
 	}, gui)
 	styleButton = function(b)
-		local baseTextSize = b:IsA("TextButton") and b.TextSize or nil
+		if b:GetAttribute("HoverReady") then
+			return
+		end
+		b:SetAttribute("HoverReady", true)
+		local effect
+		if b:IsA("TextButton") then
+			local host = make("Frame", {
+				Name = "HoverHost",
+				BackgroundTransparency = 1,
+				Size = b.Size,
+				Position = b.Position,
+				AnchorPoint = b.AnchorPoint,
+				LayoutOrder = b.LayoutOrder,
+				Visible = b.Visible,
+				ZIndex = b.ZIndex,
+			}, b.Parent)
+			b.Parent = host
+			b.AnchorPoint = Vector2.new(0.5, 0.5)
+			b.Position = UDim2.fromScale(0.5, 0.5)
+			b.Size = UDim2.fromScale(1, 1)
+			effect = make("UIScale", { Scale = 1 }, b)
+			local changing = false
+			for _, property in ipairs({ "Size", "Position", "Visible", "LayoutOrder" }) do
+				uiRuntimeConnect(b:GetPropertyChangedSignal(property), function()
+					if
+						changing
+						or property == "Size" and b.Size == UDim2.fromScale(1, 1)
+						or property == "Position" and b.Position == UDim2.fromScale(0.5, 0.5)
+					then
+						return
+					end
+					changing = true
+					if property == "Size" then
+						host.Size = b.Size
+						b.Size = UDim2.fromScale(1, 1)
+					elseif property == "Position" then
+						host.Position = b.Position
+						b.Position = UDim2.fromScale(0.5, 0.5)
+					else
+						host[property] = b[property]
+					end
+					changing = false
+				end)
+			end
+			uiRuntimeConnect(b.Destroying, function()
+				task.defer(function()
+					if host.Parent then
+						host:Destroy()
+					end
+				end)
+			end)
+		end
 		local hovered = false
 		local function animate(value)
-			if not b.Parent then
-				return
-			end
-			if baseTextSize then
-				TweenService:Create(b, TweenInfo.new(0.14, Enum.EasingStyle.Quad), { TextSize = baseTextSize * value })
-					:Play()
+			if effect and b.Parent then
+				TweenService:Create(effect, TweenInfo.new(0.14, Enum.EasingStyle.Quad), { Scale = value }):Play()
 			end
 		end
 		uiRuntimeConnect(b.MouseEnter, function()
 			hovered = true
-			animate(1.035)
+			animate(1.025)
 		end)
 		uiRuntimeConnect(b.MouseLeave, function()
 			hovered = false
@@ -1919,9 +1964,7 @@ function Library:CreateWindow(options)
 			if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
 				properties[#properties + 1] = "TextColor3"
 			end
-			if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
-				properties[#properties + 1] = "ImageColor3"
-			end
+
 			if obj:IsA("UIStroke") then
 				properties[#properties + 1] = "Color"
 			end
@@ -2028,17 +2071,10 @@ function Library:CreateWindow(options)
 			end,
 		})
 		colors:ColorPicker({
-			Title = "Accent",
+			Title = "Hightlight Color",
 			Default = appearance.Accent,
 			Callback = function(value)
 				self:SetAccent(value)
-			end,
-		})
-		colors:ColorPicker({
-			Title = "Background",
-			Default = appearance.Background,
-			Callback = function(value)
-				self:SetSurfaceColor("base", value)
 			end,
 		})
 		colors:ColorPicker({
@@ -2071,7 +2107,7 @@ function Library:CreateWindow(options)
 			end,
 		})
 		size:Slider({
-			Title = "Floating size",
+			Title = "Logo Button Size",
 			Min = 32,
 			Max = 96,
 			Default = appearance.FloatingSize,
@@ -2094,7 +2130,7 @@ function Library:CreateWindow(options)
 		})
 		local info = app:Section({ Title = "Display", Side = "Right" })
 		info:Toggle({
-			Title = "Floating button",
+			Title = "Logo Button",
 			Default = appearance.FloatingEnabled,
 			Callback = function(value)
 				appearance.FloatingEnabled = value
@@ -2102,7 +2138,7 @@ function Library:CreateWindow(options)
 			end,
 		})
 		info:Toggle({
-			Title = "Hide Info user",
+			Title = "Hide Userinfo",
 			Default = appearance.HideInfo,
 			Callback = function(value)
 				appearance.HideInfo = value
