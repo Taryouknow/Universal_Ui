@@ -1,4 +1,4 @@
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau?v=7"))()
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Source.luau?v=8"))()
 
 local Window = UI:CreateWindow({
 	Title = "UNIVERSAL",
@@ -100,7 +100,7 @@ getgenv().__UniversalExample = { Progress = Progress, Text = Caption }
 
 local Setting = Window:Category({ Title = "Setting", Icon = "settings" })
 Window:AddSettings(Setting)
-Window:LoadAutoload()
+
 
 return Window
 

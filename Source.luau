@@ -5,7 +5,6 @@ function Library:CreateWindow(options)
 	local env = getgenv()
 	local player = game:GetService("Players").LocalPlayer
 	local previous = env.__UniversalWindow
-	local lastAppearance = previous and previous.Appearance
 	if previous then
 		previous:Unload()
 	end
@@ -20,11 +19,11 @@ function Library:CreateWindow(options)
 	local Input = game:GetService("UserInputService")
 	local RunService = game:GetService("RunService")
 	local palette = {
-		base = Color3.fromRGB(20, 20, 20),
-		panel = Color3.fromRGB(14, 14, 14),
+		base = Color3.fromRGB(22, 20, 27),
+		panel = Color3.fromRGB(15, 14, 20),
 		text = Color3.fromRGB(238, 238, 240),
 		dim = Color3.fromRGB(133, 133, 138),
-		line = Color3.fromRGB(38, 38, 41),
+		line = Color3.fromRGB(43, 39, 50),
 		accent = Color3.fromRGB(141, 71, 255),
 		check = Color3.fromRGB(98, 121, 251),
 	}
@@ -153,8 +152,8 @@ function Library:CreateWindow(options)
 		BackgroundTransparency = 1,
 		Image = logoImage(options.Logo or "rbxassetid://120549670549494"),
 		ScaleType = Enum.ScaleType.Fit,
-		Position = UDim2.fromOffset(18, 17),
-		Size = UDim2.fromOffset(40, 40),
+		Position = UDim2.fromOffset(6, 3),
+		Size = UDim2.fromOffset(64, 64),
 	}, header)
 	local heading = text(header, options.Title or "UNIVERSAL", UDim2.fromOffset(132, 23), UDim2.fromOffset(70, 16), 15)
 	local crumb =
@@ -269,8 +268,8 @@ function Library:CreateWindow(options)
 		Accent = "8D47FF",
 		RGB = false,
 		HideInfo = false,
-		Background = "141414",
-		Panel = "0E0E0E",
+		Background = "16141B",
+		Panel = "0F0E14",
 		Scale = 100,
 		Blur = 0,
 		Transparency = 0,
@@ -282,9 +281,6 @@ function Library:CreateWindow(options)
 		Motion = true,
 		SmoothScroll = true,
 	}
-	for name, value in pairs(lastAppearance or {}) do
-		appearance[name] = value
-	end
 	for name, value in pairs(options.Appearance or {}) do
 		appearance[name] = value
 	end
@@ -328,24 +324,32 @@ function Library:CreateWindow(options)
 	function NativeWindow:SetScale(value)
 		scale.Scale = value
 	end
-	function Window:ApplyAppearance()
+	function Window:ApplyAppearance(viewportOverride)
 		avatar.Visible = true
-		avatar.Image = appearance.HideInfo and logoImage(options.Logo or "rbxassetid://120549670549494")
+		avatar.Image = appearance.HideInfo and (options.FloatLogo or "rbxassetid://99287950951825")
 			or options.ProfileImage
 			or ("rbxthumb://type=AvatarHeadShot&id=" .. player.UserId .. "&w=150&h=150")
 		avatar.ImageColor3 = Color3.new(1, 1, 1)
 		displayInfo.Visible = true
 		displayInfo.Text = appearance.HideInfo and (options.Title or "UNIVERSAL") or player.DisplayName
 		usernameInfo.Visible = not appearance.HideInfo
-		local viewport = workspace.CurrentCamera.ViewportSize
-		scale.Scale = math.max(
-			0.3,
-			math.min(
-				appearance.Scale / 100,
-				(viewport.X - 28) / (options.Width or 900),
-				(viewport.Y - 28) / (options.Height or 660)
-			)
-		)
+		local viewport = viewportOverride or workspace.CurrentCamera.ViewportSize
+		local compact = viewport.X < 650
+		local width = compact and 460 or (options.Width or 900)
+		local height = compact
+				and math.max(560, math.min(1100, (viewport.Y - 24) * width / math.max(1, viewport.X - 24)))
+			or (options.Height or 660)
+		root.Size = UDim2.fromOffset(width, height)
+		heading.Visible = not compact
+		crumb.Visible = not compact
+		displayInfo.Visible = not compact
+		usernameInfo.Visible = not compact and not appearance.HideInfo
+		avatar.Position = compact and UDim2.new(1, -54, 0, 18) or UDim2.new(1, -165, 0, 18)
+		nav.Size = UDim2.new(1, compact and -144 or -440, 0, 60)
+		body.Position = UDim2.fromOffset(compact and 8 or 42, 110)
+		body.Size = UDim2.new(1, compact and -16 or -84, 1, -116)
+		scale.Scale =
+			math.max(0.3, math.min(appearance.Scale / 100, (viewport.X - 24) / width, (viewport.Y - 24) / height))
 		for _, f in ipairs(surfaces) do
 			if f.Parent then
 				f.BackgroundTransparency = (appearance.Transparency or 0) / 100
@@ -536,6 +540,17 @@ function Library:CreateWindow(options)
 	local function draggable(handle, target)
 		local start, origin, dragging
 		uiRuntimeConnect(handle.InputBegan, function(input)
+			if handle == header then
+				local pos, size = nav.AbsolutePosition, nav.AbsoluteSize
+				if
+					input.Position.X >= pos.X
+					and input.Position.X <= pos.X + size.X
+					and input.Position.Y >= pos.Y
+					and input.Position.Y <= pos.Y + size.Y
+				then
+					return
+				end
+			end
 			if
 				input.UserInputType == Enum.UserInputType.MouseButton1
 				or input.UserInputType == Enum.UserInputType.Touch
@@ -609,7 +624,17 @@ function Library:CreateWindow(options)
 			p.Frame.Visible = p == page
 			p.TabButton.Visible = p.Group == page.Group
 			p.TabButton.TextColor3 = p == page and palette.text or palette.dim
-			p.Underline.Visible = p == page
+			p.Underline.Visible = true
+			TweenService:Create(
+				p.Underline,
+				TweenInfo.new(0.18, Enum.EasingStyle.Quad),
+				{ Size = UDim2.new(p == page and 0.48 or 0, 0, 0, 2), BackgroundTransparency = p == page and 0 or 1 }
+			):Play()
+			TweenService:Create(
+				p.TabButton,
+				TweenInfo.new(0.18),
+				{ BackgroundColor3 = palette.accent, BackgroundTransparency = p == page and 0.9 or 1 }
+			):Play()
 		end
 		for _, g in ipairs(groups) do
 			local active = g == page.Group
@@ -960,12 +985,8 @@ function Library:CreateWindow(options)
 				popup.Size =
 					UDim2.fromOffset(b.AbsoluteSize.X / scale.Scale, math.min(232, math.max(94, #options * 33 + 52)))
 				popup.Position = UDim2.fromOffset(
-					math.clamp(p.X, 0, (options.Width or 900) - popup.Size.X.Offset),
-					math.clamp(
-						p.Y + b.AbsoluteSize.Y / scale.Scale + 4,
-						0,
-						(options.Height or 660) - popup.Size.Y.Offset
-					)
+					math.clamp(p.X, 0, root.Size.X.Offset - popup.Size.X.Offset),
+					math.clamp(p.Y + b.AbsoluteSize.Y / scale.Scale + 4, 0, root.Size.Y.Offset - popup.Size.Y.Offset)
 				)
 				popup.Visible = true
 				c.Render()
@@ -1465,6 +1486,7 @@ function Library:CreateWindow(options)
 		for i, side in ipairs({ "Left", "Right" }) do
 			local column = make("ScrollingFrame", {
 				Name = side,
+				ScrollingDirection = Enum.ScrollingDirection.Y,
 				ClipsDescendants = true,
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
@@ -1480,11 +1502,13 @@ function Library:CreateWindow(options)
 		end
 		page.TabButton = button(tabBar, opts.Title, UDim2.fromOffset(150, 64))
 		page.TabButton.Visible = false
+		round(page.TabButton, 7)
 		page.Underline = make("Frame", {
 			BackgroundColor3 = palette.accent,
 			BorderSizePixel = 0,
 			Size = UDim2.fromOffset(66, 1),
-			Position = UDim2.new(0.5, -33, 1, -15),
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 1, -12),
 			Visible = false,
 		}, page.TabButton)
 		group.pages[#group.pages + 1] = page
@@ -1715,26 +1739,6 @@ function Library:CreateWindow(options)
 				list.Refresh(configs())
 			end,
 		})
-		section:Button({
-			Title = "Set autoload",
-			Callback = function()
-				if isfile(configPath(chosen)) then
-					writefile(configFolder .. "/autoload.txt", chosen)
-					Window:Notify({ Title = "Config", Content = "Autoload on" })
-				else
-					Window:Notify({ Title = "Config", Content = "Save first" })
-				end
-			end,
-		})
-		section:Button({
-			Title = "Clear autoload",
-			Callback = function()
-				local path = configFolder .. "/autoload.txt"
-				if isfile(path) then
-					delfile(path)
-				end
-			end,
-		})
 		for key in pairs(Window.Flags) do
 			local index = tonumber(key:match("/(%d+)$"))
 			if index and index > firstFlag then
@@ -1871,6 +1875,8 @@ function Library:CreateWindow(options)
 			return
 		end
 		frame.Active = true
+		frame.ClipsDescendants = true
+		frame.ScrollingEnabled = true
 		frame.ElasticBehavior = Enum.ElasticBehavior.Never
 		local controller = { Frame = frame, Target = frame.CanvasPosition }
 		scrolls[frame] = controller
@@ -1892,7 +1898,34 @@ function Library:CreateWindow(options)
 		end
 	end
 	uiRuntimeConnect(Input.InputChanged, function(input)
-		local controller = hoveredScroll
+		local controller
+		local mouse = Input:GetMouseLocation()
+		for frame, candidate in pairs(scrolls) do
+			local visible = frame.Parent ~= nil
+			local ancestor = frame
+			while visible and ancestor and ancestor ~= gui do
+				if ancestor:IsA("GuiObject") and not ancestor.Visible then
+					visible = false
+				end
+				ancestor = ancestor.Parent
+			end
+			if visible then
+				local pos, extent = frame.AbsolutePosition, frame.AbsoluteSize
+				if
+					mouse.X >= pos.X
+					and mouse.X <= pos.X + extent.X
+					and mouse.Y >= pos.Y
+					and mouse.Y <= pos.Y + extent.Y
+				then
+					if not controller or frame.ZIndex >= controller.Frame.ZIndex then
+						controller = candidate
+					end
+				end
+			end
+		end
+		if popup.Visible and controller and controller.Frame ~= popupList then
+			return
+		end
 		if
 			input.UserInputType ~= Enum.UserInputType.MouseWheel
 			or not controller
@@ -1996,9 +2029,9 @@ function Library:CreateWindow(options)
 	function Window:SetTheme(name)
 		local themes = {
 			Dark = {
-				base = Color3.fromRGB(20, 20, 20),
-				panel = Color3.fromRGB(14, 14, 14),
-				line = Color3.fromRGB(38, 38, 41),
+				base = Color3.fromRGB(22, 20, 27),
+				panel = Color3.fromRGB(15, 14, 20),
+				line = Color3.fromRGB(43, 39, 50),
 			},
 			Midnight = {
 				base = Color3.fromRGB(19, 20, 29),
