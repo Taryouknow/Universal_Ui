@@ -334,22 +334,19 @@ function Library:CreateWindow(options)
 		displayInfo.Text = appearance.HideInfo and (options.Title or "UNIVERSAL") or player.DisplayName
 		usernameInfo.Visible = not appearance.HideInfo
 		local viewport = viewportOverride or workspace.CurrentCamera.ViewportSize
-		local compact = viewport.X < 650
-		local width = compact and 460 or (options.Width or 900)
-		local height = compact
-				and math.max(560, math.min(1100, (viewport.Y - 24) * width / math.max(1, viewport.X - 24)))
-			or (options.Height or 660)
+		local width = options.Width or 900
+		local height = options.Height or 660
 		root.Size = UDim2.fromOffset(width, height)
-		heading.Visible = not compact
-		crumb.Visible = not compact
-		displayInfo.Visible = not compact
-		usernameInfo.Visible = not compact and not appearance.HideInfo
-		avatar.Position = compact and UDim2.new(1, -54, 0, 18) or UDim2.new(1, -165, 0, 18)
-		nav.Size = UDim2.new(1, compact and -144 or -440, 0, 60)
-		body.Position = UDim2.fromOffset(compact and 8 or 42, 110)
-		body.Size = UDim2.new(1, compact and -16 or -84, 1, -116)
+		heading.Visible = true
+		crumb.Visible = true
+		displayInfo.Visible = true
+		usernameInfo.Visible = not appearance.HideInfo
+		avatar.Position = UDim2.new(1, -165, 0, 18)
+		nav.Size = UDim2.new(1, -440, 0, 60)
+		body.Position = UDim2.fromOffset(42, 110)
+		body.Size = UDim2.new(1, -84, 1, -116)
 		scale.Scale =
-			math.max(0.3, math.min(appearance.Scale / 100, (viewport.X - 24) / width, (viewport.Y - 24) / height))
+			math.max(0.1, math.min(appearance.Scale / 100, (viewport.X - 24) / width, (viewport.Y - 24) / height))
 		for _, f in ipairs(surfaces) do
 			if f.Parent then
 				f.BackgroundTransparency = (appearance.Transparency or 0) / 100
@@ -682,11 +679,12 @@ function Library:CreateWindow(options)
 		title.TextXAlignment = Enum.TextXAlignment.Center
 		title.LayoutOrder = 0
 		make("Frame", {
-			BackgroundColor3 = palette.accent,
+			Name = "SectionMark",
+			BackgroundColor3 = Color3.fromRGB(82, 78, 91),
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 1, -3),
-			Size = UDim2.fromOffset(34, 1),
+			Size = UDim2.fromOffset(18, 1),
 		}, title)
 		local section = { _card = card, Native = {}, Order = 0 }
 		local function row(height)
@@ -1815,6 +1813,29 @@ function Library:CreateWindow(options)
 				end)
 			end)
 		end
+		if b:IsA("ImageButton") then
+			local oldAnchor = b.AnchorPoint
+			b.Position = b.Position
+				+ UDim2.new(
+					b.Size.X.Scale * (0.5 - oldAnchor.X),
+					b.Size.X.Offset * (0.5 - oldAnchor.X),
+					b.Size.Y.Scale * (0.5 - oldAnchor.Y),
+					b.Size.Y.Offset * (0.5 - oldAnchor.Y)
+				)
+			b.AnchorPoint = Vector2.new(0.5, 0.5)
+			effect = make("UIScale", { Scale = 1 }, b)
+		end
+		local hoverStroke = make(
+			"UIStroke",
+			{
+				Name = "HoverOutline",
+				Color = Color3.fromRGB(126, 119, 143),
+				Thickness = 1,
+				Transparency = 1,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			},
+			b
+		)
 		local hovered = false
 		local function animate(value)
 			if effect and b.Parent then
@@ -1823,10 +1844,12 @@ function Library:CreateWindow(options)
 		end
 		uiRuntimeConnect(b.MouseEnter, function()
 			hovered = true
-			animate(1.025)
+			TweenService:Create(hoverStroke, TweenInfo.new(0.14), { Transparency = 0.65 }):Play()
+			animate(1.04)
 		end)
 		uiRuntimeConnect(b.MouseLeave, function()
 			hovered = false
+			TweenService:Create(hoverStroke, TweenInfo.new(0.14), { Transparency = 1 }):Play()
 			animate(1)
 		end)
 		uiRuntimeConnect(b.Activated, function()
@@ -1863,7 +1886,7 @@ function Library:CreateWindow(options)
 			animate(0.965)
 			task.delay(0.09, function()
 				if Runtime.Alive then
-					animate(hovered and 1.025 or 1)
+					animate(hovered and 1.04 or 1)
 				end
 			end)
 		end)
@@ -1893,7 +1916,7 @@ function Library:CreateWindow(options)
 		if obj:IsA("ScrollingFrame") then
 			trackScroll(obj)
 		end
-		if obj:IsA("TextButton") then
+		if obj:IsA("GuiButton") then
 			styleButton(obj)
 		end
 	end
@@ -2108,13 +2131,6 @@ function Library:CreateWindow(options)
 			Default = appearance.Accent,
 			Callback = function(value)
 				self:SetAccent(value)
-			end,
-		})
-		colors:ColorPicker({
-			Title = "Panel",
-			Default = appearance.Panel,
-			Callback = function(value)
-				self:SetSurfaceColor("panel", value)
 			end,
 		})
 		colors:Toggle({

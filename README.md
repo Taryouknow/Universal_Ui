@@ -10,7 +10,7 @@ UI base with tabs, controls and configs.
 ## Try it
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Example.luau?v=8"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Example.luau?v=9"))()
 ```
 
 Category is the top menu. Tab is the page below it. Section holds your controls; use `Left` or `Right`.
