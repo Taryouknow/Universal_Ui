@@ -105,7 +105,7 @@ function Library:CreateWindow(options)
 		return Runtime:Connect(signal, callback(fn))
 	end
 	local icons = {}
-	local assetUrl = options.AssetUrl or "https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/"
+	local assetUrl = options.AssetUrl or "https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/assets/"
 	for _, name in ipairs({ "home", "main", "settings" }) do
 		local path = (options.Folder or "Universal_Ui") .. "/assets/v3/" .. name .. ".png"
 		if not isfile(path) then
@@ -285,7 +285,7 @@ function Library:CreateWindow(options)
 	local blur = make("BlurEffect", { Name = "UniversalBlur", Size = 0, Enabled = false }, game:GetService("Lighting"))
 	local floating = make("ImageButton", {
 		Name = "Menu",
-		Image = logoImage(options.FloatLogo or "rbxassetid://99287950951825"),
+		Image = options.FloatLogo or "rbxassetid://99287950951825",
 		ScaleType = Enum.ScaleType.Fit,
 		BackgroundColor3 = palette.panel,
 		BorderSizePixel = 0,
