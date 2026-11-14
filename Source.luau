@@ -248,7 +248,8 @@ function Library:CreateWindow(options)
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollBarThickness = 2,
-		ScrollBarImageColor3 = palette.accent,
+		ScrollBarImageColor3 = Color3.fromRGB(82, 78, 91),
+		ScrollBarImageTransparency = 0.3,
 		ZIndex = 51,
 	}, popup)
 	make("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder }, popupList)
@@ -1493,7 +1494,8 @@ function Library:CreateWindow(options)
 				CanvasSize = UDim2.new(),
 				AutomaticCanvasSize = Enum.AutomaticSize.Y,
 				ScrollBarThickness = 2,
-				ScrollBarImageColor3 = palette.accent,
+				ScrollBarImageColor3 = Color3.fromRGB(82, 78, 91),
+				ScrollBarImageTransparency = 0.3,
 			}, page.Frame)
 			make("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }, column)
 			page.Columns[side] = column
@@ -1825,17 +1827,13 @@ function Library:CreateWindow(options)
 			b.AnchorPoint = Vector2.new(0.5, 0.5)
 			effect = make("UIScale", { Scale = 1 }, b)
 		end
-		local hoverStroke = make(
-			"UIStroke",
-			{
-				Name = "HoverOutline",
-				Color = Color3.fromRGB(126, 119, 143),
-				Thickness = 1,
-				Transparency = 1,
-				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-			},
-			b
-		)
+		local hoverStroke = make("UIStroke", {
+			Name = "HoverOutline",
+			Color = Color3.fromRGB(126, 119, 143),
+			Thickness = 1,
+			Transparency = 1,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		}, b)
 		local hovered = false
 		local function animate(value)
 			if effect and b.Parent then
