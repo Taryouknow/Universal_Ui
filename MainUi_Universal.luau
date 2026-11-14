@@ -1,11 +1,11 @@
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Library.luau"))()
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Taryouknow/Universal_Ui/main/Library.luau?v=2"))()
 
 local Window = UI:CreateWindow({
 	Title = "UNIVERSAL",
 	Author = "TaTarzx",
 	Version = "v1.0",
-	Logo = "rbxassetid://99287950951825",
-	FloatLogo = "rbxassetid://120549670549494",
+	Logo = "rbxassetid://120549670549494",
+	FloatLogo = "rbxassetid://99287950951825",
 	Folder = "Universal_Ui",
 	Width = 900,
 	Height = 660,
@@ -37,7 +37,7 @@ Interface:Slider({
 	Title = "Scale",
 	Min = 60,
 	Max = 110,
-	Default = 100,
+	Default = Window.Appearance.Scale,
 	Suffix = "%",
 	Callback = function(value)
 		Window.Appearance.Scale = value
@@ -47,7 +47,7 @@ Interface:Slider({
 
 Interface:Toggle({
 	Title = "Motion",
-	Default = true,
+	Default = Window.Appearance.Motion,
 	Callback = function(value)
 		Window:SetMotion(value)
 	end,
@@ -55,7 +55,7 @@ Interface:Toggle({
 
 Interface:Toggle({
 	Title = "Smooth scroll",
-	Default = true,
+	Default = Window.Appearance.SmoothScroll,
 	Callback = function(value)
 		Window:SetSmoothScroll(value)
 	end,
@@ -63,7 +63,7 @@ Interface:Toggle({
 
 Interface:Toggle({
 	Title = "Click sound",
-	Default = true,
+	Default = Window.Appearance.Sound,
 	Callback = function(value)
 		Window:SetSound(value)
 	end,
@@ -73,7 +73,7 @@ Interface:Slider({
 	Title = "Volume",
 	Min = 0,
 	Max = 100,
-	Default = 15,
+	Default = math.round(Window.Appearance.Volume * 100),
 	Suffix = "%",
 	Callback = function(value)
 		Window:SetVolume(value / 100)

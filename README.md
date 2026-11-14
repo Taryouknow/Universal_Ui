@@ -9,8 +9,8 @@ local Window = UI:CreateWindow({
     Title = "UNIVERSAL",
     Author = "TaTarzx",
     Folder = "Universal_Ui",
-    Logo = "rbxassetid://99287950951825",
-    FloatLogo = "rbxassetid://120549670549494",
+    Logo = "rbxassetid://120549670549494",
+    FloatLogo = "rbxassetid://99287950951825",
 })
 
 Window:SidebarSection("Menu")
