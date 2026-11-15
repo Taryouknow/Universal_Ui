@@ -1,6 +1,6 @@
 local UI = loadstring(
 	game:HttpGet(
-		"https://raw.githubusercontent.com/Taryouknow/Universal_Ui/dff18744691c25e50acdd0ac81a63a6d69e97a0c/Library/Source.luau"
+		"https://raw.githubusercontent.com/Taryouknow/Universal_Ui/28348884f7b198a3ab35e28855b29566a20cb2e8/Library/Source.luau"
 	)
 )()
 
@@ -166,6 +166,14 @@ Icons:Dropdown({
 	end,
 })
 IconPreview = Icons:Image({ Image = Window:Icon("car"), Height = 64 })
+
+Icons:Dropdown({
+	Title = "Image dropdown",
+	Options = { "Home", "Car", "Settings" },
+	Default = "Home",
+	ItemIcons = true,
+	Icons = { Home = Window:Icon("house"), Car = Window:Icon("car"), Settings = Window:Icon("settings") },
+})
 
 local Setting = Window:Category({ Title = "Setting", Icon = "settings" })
 Window:AddSettings(Setting)
