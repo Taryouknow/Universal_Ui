@@ -1045,6 +1045,22 @@ function Library:CreateWindow(options)
 			round(b, 4)
 			b:SetAttribute("HoverStyle", "Highlight")
 			local caption = text(b, "", UDim2.new(1, -36, 1, 0), UDim2.fromOffset(8, 0), 13)
+			local selectedIcon
+			if opts.ItemIcons then
+				selectedIcon = make(
+					"ImageLabel",
+					{
+						Name = "SelectedIcon",
+						BackgroundTransparency = 1,
+						Size = UDim2.fromOffset(30, 24),
+						Position = UDim2.fromOffset(6, 3),
+						ScaleType = Enum.ScaleType.Fit,
+					},
+					b
+				)
+				caption.Position = UDim2.fromOffset(44, 0)
+				caption.Size = UDim2.new(1, -72, 1, 0)
+			end
 			local arrow = make("Frame", {
 				Name = "Arrow",
 				BackgroundTransparency = 1,
@@ -1079,6 +1095,9 @@ function Library:CreateWindow(options)
 			c.Set = function(v, fire)
 				value = opts.Multi and table.clone(type(v) == "table" and v or {}) or v
 				caption.Text = opts.Multi and table.concat(value, ", ") or tostring(value or "")
+				if selectedIcon then
+					selectedIcon.Image = opts.Icons and opts.Icons[value] or ""
+				end
 				if preview then
 					local icon = opts.Icons and opts.Icons[value]
 					preview.Image = type(icon) == "number" and ("rbxassetid://" .. icon)
@@ -1121,9 +1140,15 @@ function Library:CreateWindow(options)
 				local query = popupSearch.Text:lower()
 				for i, name in ipairs(options) do
 					if tostring(name):lower():find(query, 1, true) then
-						local entry = button(popupList, tostring(name), UDim2.new(1, -4, 0, 30))
+						local entry = button(
+							popupList,
+							opts.ItemIcons and "" or tostring(name),
+							UDim2.new(1, -4, 0, opts.ItemIcons and 56 or 30)
+						)
 						entry:SetAttribute("HoverStyle", "Highlight")
-						make("UIPadding", { PaddingLeft = UDim.new(0, 10) }, entry)
+						if not opts.ItemIcons then
+							make("UIPadding", { PaddingLeft = UDim.new(0, 10) }, entry)
+						end
 						round(entry, 5)
 						local selected = opts.Multi and table.find(value, name) or not opts.Multi and value == name
 						entry.BackgroundColor3 = palette.accent
@@ -1134,6 +1159,34 @@ function Library:CreateWindow(options)
 						entry.TextColor3 = (opts.Multi and table.find(value, name) or not opts.Multi and value == name)
 								and palette.accent
 							or palette.text
+
+						if opts.ItemIcons then
+							make(
+								"ImageLabel",
+								{
+									Name = "OptionIcon",
+									BackgroundTransparency = 1,
+									Size = UDim2.fromOffset(56, 42),
+									Position = UDim2.fromOffset(8, 7),
+									Image = opts.Icons and opts.Icons[name] or "",
+									ScaleType = Enum.ScaleType.Fit,
+									ZIndex = 53,
+								},
+								entry
+							)
+							local label = text(
+								entry,
+								tostring(name),
+								UDim2.new(1, -82, 1, -8),
+								UDim2.fromOffset(72, 4),
+								12,
+								entry.TextColor3
+							)
+							label.Name = "OptionName"
+							label.TextWrapped = true
+							label.TextTruncate = Enum.TextTruncate.None
+							label.ZIndex = 53
+						end
 						uiRuntimeConnect(entry.Activated, function()
 							if opts.Multi then
 								local nextValue = table.clone(value)
@@ -1165,8 +1218,10 @@ function Library:CreateWindow(options)
 				local p = (b.AbsolutePosition - root.AbsolutePosition) / scale.Scale
 				local minimum = -root.AbsolutePosition / scale.Scale
 				local maximum = (workspace.CurrentCamera.ViewportSize - root.AbsolutePosition) / scale.Scale
-				popup.Size =
-					UDim2.fromOffset(b.AbsoluteSize.X / scale.Scale, math.min(232, math.max(94, #options * 33 + 52)))
+				popup.Size = UDim2.fromOffset(
+					b.AbsoluteSize.X / scale.Scale,
+					math.min(opts.ItemIcons and 320 or 232, math.max(94, #options * (opts.ItemIcons and 59 or 33) + 52))
+				)
 				popup.Position = UDim2.fromOffset(
 					math.clamp(p.X, minimum.X, maximum.X - popup.Size.X.Offset),
 					math.clamp(p.Y + b.AbsoluteSize.Y / scale.Scale + 4, 0, root.Size.Y.Offset - popup.Size.Y.Offset)
