@@ -106,6 +106,8 @@ function Library:CreateWindow(options)
 	local Http = game:GetService("HttpService")
 	local TweenService = game:GetService("TweenService")
 	local Input = game:GetService("UserInputService")
+	local Actions = game:GetService("ContextActionService")
+	local scrollAction = "UniversalUiWheel_" .. player.UserId
 	local RunService = game:GetService("RunService")
 	local palette = {
 		base = Color3.fromRGB(22, 20, 27),
@@ -293,41 +295,34 @@ function Library:CreateWindow(options)
 	round(shadow, 12)
 	local body = surface(root, "Workspace", UDim2.new(1, -84, 1, -116), UDim2.fromOffset(42, 110), palette.base)
 	round(body, 10)
-    local function syncShadow()
-        shadow.Position=body.Position+UDim2.fromOffset(-4,4)
-        shadow.Size=body.Size+UDim2.fromOffset(8,0)
-    end
-    uiRuntimeConnect(body:GetPropertyChangedSignal("Position"),syncShadow)
-    uiRuntimeConnect(body:GetPropertyChangedSignal("Size"),syncShadow)
-    syncShadow()
+	local function syncShadow()
+		shadow.Position = body.Position + UDim2.fromOffset(-4, 4)
+		shadow.Size = body.Size + UDim2.fromOffset(8, 0)
+	end
+	uiRuntimeConnect(body:GetPropertyChangedSignal("Position"), syncShadow)
+	uiRuntimeConnect(body:GetPropertyChangedSignal("Size"), syncShadow)
+	syncShadow()
 
-	local bodyDrag = make(
-		"Frame",
-		{
-			Name = "DragHandle",
-			Active = true,
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, -16, 0, 16),
-			Position = UDim2.fromOffset(8, 0),
-		},
-		body
-	)
-	local grip = make(
-		"Frame",
-		{
-			Name = "Grip",
-			BackgroundColor3 = Color3.fromRGB(82, 78, 91),
-			BackgroundTransparency = 0.25,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0.5, 0),
-			Size = UDim2.fromOffset(34, 2),
-			Position = UDim2.new(0.5, 0, 0, 6),
-		},
-		bodyDrag
-	)
+	local bodyDrag = make("Frame", {
+		Name = "DragHandle",
+		Active = true,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, -16, 0, 16),
+		Position = UDim2.fromOffset(8, 0),
+	}, body)
+	local grip = make("Frame", {
+		Name = "Grip",
+		BackgroundColor3 = Color3.fromRGB(82, 78, 91),
+		BackgroundTransparency = 0.25,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(34, 2),
+		Position = UDim2.new(0.5, 0, 0, 6),
+	}, bodyDrag)
 	round(grip, 1)
 	local tabBar = make("ScrollingFrame", {
 		Name = "Tabs",
+		ZIndex = 10,
 		BackgroundColor3 = palette.panel,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, -12, 0, 56),
@@ -357,8 +352,9 @@ function Library:CreateWindow(options)
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 	}, nav)
 	local navPadding = make("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }, nav)
-	local pages = make("Frame", {
+	local pages = make("CanvasGroup", {
 		Name = "Pages",
+		ZIndex = 1,
 		ClipsDescendants = true,
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(6, 78),
@@ -546,6 +542,7 @@ function Library:CreateWindow(options)
 			return
 		end
 		self.Unloaded = true
+		Actions:UnbindAction(scrollAction)
 		Runtime.Alive = false
 		for _, conn in ipairs(Runtime.Connections) do
 			conn:Disconnect()
@@ -1253,7 +1250,7 @@ function Library:CreateWindow(options)
 		end
 		function section:UserInfo(opts)
 			opts = opts or {}
-			local frame = row(158)
+			local frame = row(opts.ShowMap == false and 84 or 158)
 			local photo = make("ImageLabel", {
 				Name = "Avatar",
 				BackgroundColor3 = palette.line,
@@ -1266,6 +1263,9 @@ function Library:CreateWindow(options)
 			round(photo, 14)
 			text(frame, player.DisplayName, UDim2.new(1, -80, 0, 26), UDim2.fromOffset(80, 16), 17)
 			text(frame, "@" .. player.Name, UDim2.new(1, -80, 0, 20), UDim2.fromOffset(80, 43), 12, palette.dim)
+			if opts.ShowMap == false then
+				return { Instance = frame, SetMap = function() end }
+			end
 			make("Frame", {
 				BackgroundColor3 = palette.line,
 				BorderSizePixel = 0,
@@ -2178,6 +2178,28 @@ function Library:CreateWindow(options)
 			styleButton(obj)
 		end
 	end
+	local function overPanel(panel, mouse)
+		if not panel.Visible then
+			return false
+		end
+		local pos, size = panel.AbsolutePosition, panel.AbsoluteSize
+		return mouse.X >= pos.X and mouse.Y >= pos.Y and mouse.X <= pos.X + size.X and mouse.Y <= pos.Y + size.Y
+	end
+	Actions:BindActionAtPriority(scrollAction, function()
+		if Runtime.Alive and root.Visible then
+			local mouse = Input:GetMouseLocation()
+			if
+				overPanel(body, mouse)
+				or overPanel(header, mouse)
+				or overPanel(popup, mouse)
+				or overPanel(floating, mouse)
+			then
+				return Enum.ContextActionResult.Sink
+			end
+		end
+		return Enum.ContextActionResult.Pass
+	end, false, Enum.ContextActionPriority.High.Value + 100, Enum.UserInputType.MouseWheel)
+
 	uiRuntimeConnect(Input.InputChanged, function(input)
 		local controller
 		local mouse = Input:GetMouseLocation()
